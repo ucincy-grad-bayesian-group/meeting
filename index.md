@@ -22,9 +22,8 @@ Our meetings are held every Wednesday at 5:00 PM in the Department of Statistics
 If you're a UC grad student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:stats-group@uc.edu) for more information.
 
 ## Recent Discussions
-- [Week 41: Hierarchical Models](/week-41/)
-- [Week 40: Markov Chain Monte Carlo Techniques](/week-40/)
-- [Week 39: Bayesian Regression Analysis](/week-39/)
+- [Week 5: Model Comparison Criterions](/meeting/model_comparison.html): Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC. 
+
 
 ## Contact
 For more information, please email us at [stats-group@uc.edu](mailto:stats-group@uc.edu).
