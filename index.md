@@ -28,7 +28,9 @@ Our meetings are held every Wednesday at 5:00 PM in the Department of Statistics
 - **Week 3:** Non-informative Prior. Kyle summarized the common non-informative priors and apply them on 2022 American birth data. He also provided the examples of prior in clinical trials. [Slide](/meeting/week3/UninformativePriorDistribution.pdf)
 
 - **Week 4:**
-  - Theory of Weakly informative Prior. Hancheng explained
+  - Theory of Weakly informative Prior. Hancheng explained the implication of weakly informative prior and applied this idea to the airline fatalities data. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week2/BDAanalysis.Rmd). [Html](/meeting/week2/BDAanalysis.html).
+  - Advantages of using weakly informative Prior. Yuan presented two examples, one is the estimation of sex ratio, where he showed using prior information can prevent the absurd results from appearing, and in logsitic regression with complete separation, weakly informative prior gives more resonable results. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week2/BDAanalysis.Rmd). [Html](/meeting/week2/BDAanalysis.html).
+  - Frequentist properties of weakly informative prior in sex ratio example. Kyle argued that the use of N(0,0.007) for the difference parameter in probability $p_1-p_2$ will result in close to 0 power. [Pdf]().
 
 - **Week 5:**
   - Theory of Model Comparison Criterions: Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/model_comparison.Rmd). [Html](/meeting/week5/model_comparison.html)
