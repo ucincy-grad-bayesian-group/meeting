@@ -27,7 +27,7 @@ If you're a UC grad student interested in statistics and data science, we'd love
   
 - **Week 5:**
   - Theory of Model Comparison Criterions: Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/model_comparison.Rmd). [Html](/meeting/week5/model_comparison.html)
-  - Application: Eric showed how to calculate the model comparison criterions for Rstan Models. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/Model_comp.Rmd). [html]()
+  - Application: Eric showed how to calculate the model comparison criterions for Rstan Models. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/Model_comp.Rmd). [html](/meeting/week5/Model_comp.html)
 
 
 ## Contact
