@@ -1,0 +1,420 @@
+---
+title: "info/noninfo prior"
+output: html_document
+date: "2023-09-21"
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Use informative/noninformative for the fatal accidents data
+
+-   Informative priors: provides strong information.
+
+-   Noninfomative priors: No informative included, let the data speak
+    for themselves
+
+-   Weakly informative priors: The information it does provide is
+    intentionally weaker than whatever actual prior knowledge is
+    available.
+
+Prior Recommendation(after normalization):
+
+-   Flat prior (not usually recommended);
+-   Super-vague but proper prior: normal(0, 1e6) (not usually
+    recommended);
+-   Weakly informative prior, very weak: normal(0, 10);
+-   Generic weakly informative prior: normal(0, 1);
+-   Specific informative prior: normal(0.4, 0.2) or whatever. Sometimes
+    this can be expressed as a scaling followed by a generic prior:
+    theta = 0.4 + 0.2\*z; z \~ normal(0, 1);
+
+For example, in a simple linear regression, y and x are normalized,
+based on 2$\sigma$ rule, there is around 95% that y changes with in
+(-2,2) if x changes 1, so $\beta \sim N(0,1)$ can provide some
+information of $\beta$ but it is not quite strong compared to
+informative priors.
+
+Statements such as "informative" or "weakly informative" depend
+crucially on what questions are being asked (a point that is related to
+the idea that the prior can often only be understood in the context of
+the likelihood
+
+A principle to construct weak informative prior: write down what you
+think the prior should be, then spread it out. The idea is that the cost
+of setting the prior too narrow is more severe than the cost of setting
+it too wide.
+
+Two ways to construct weakly informative prior:
+
+1.  Start with some version of a noninformative prior distribution and
+    then add enough information so that inferences are constrained to be
+    reasonable.
+
+2.  Start with a strong, highly informative prior and broaden it to
+    account for uncertainty in one's prior beliefs and in the
+    applicability of any historically based prior distribution to new
+    data
+
+```{r}
+logistic_prob <- function(coef,p){
+  1/(1+exp(-coef)*(1-p)/p)
+}
+
+p <- seq(0,1,length.out=1000)
+p_new <- logistic_prob(5, p)
+plot(p,p_new, type="line")
+
+```
+
+For logistic regression, a change of 5 moves a probability from 0.01 to
+0.5, or from 0.5 to 0.99
+
+## Model
+
+Model Specification We model the number of fatal accidentsY as a Poisson
+random variable: $$ Y \sim \text{Poisson}(\lambda) $$ where
+$$\lambda=a+b*t$$, t is time variable, the very first year in the
+dataset is set to be t=0.
+
+Choices of priors:
+
+-   noninformative: unbounded flat prior, diffuse prior$$N(0,1000)$$
+-   weaklyinformative: half Cauchy
+    prior$$Cauchy(0,10)$$,and$$Cauchy(0,2.5)$$
+-   informative: $$a\sim N(30,5)$$, $$b \sim N(1,1.5)$$
+
+For example,consider a Cauchy distribution with center 0 and scale 2.5
+which implies that the true increases of number of fatal accidents for
+next year,is most likely to be near zero, with a 50% chance of being in
+the range[−2.5,2.5],a 90% chance of being in the range[−15.88,15.51],and
+a 94% chance of being the range[−31.56,31.783]. We center the prior
+distribution at zero because, ahead of time, we have no particular
+reason to believe the coefficient will be positive or negative. The
+Cauchy family has flat tails so that, if the data do convincingly show a
+very large effect, this will not be contradicted by the prior
+distribution。
+
+```{r, message=FALSE}
+library("rstan") 
+library(dplyr)
+library(ggplot2)
+library(MASS)
+library(DT)
+library(gridExtra)
+
+url_to_rda <- "https://github.com/ucincy-grad-bayesian-group/meeting/raw/main/week5/BDAdata.rda"
+# Open a connection to the URL
+con <- url(url_to_rda)
+# Load the .rda file into R
+load(con)
+# Close the connection
+close(con)
+
+set.seed(1234)
+BDAdata$t <- BDAdata$year - min(BDAdata$year)
+```
+
+Stan Models
+
+```{r}
+stan_flat ="
+data {
+    int<lower=0> N;            // Number of observations
+    vector[N] t;            // time data
+    int<lower=0> fatal_accidents[N]; // Observed fatal accidents
+}
+
+parameters {
+    real a;        // Intercept
+    real b;        // Slope
+}
+
+model {
+    vector[N] lambda;
+    for (i in 1:N) {
+        lambda[i] = a + b * t[i];
+    }
+    fatal_accidents ~ poisson(lambda);
+}
+"
+
+stan_HalfCauchy="
+data {
+    int<lower=0> N;
+    vector[N] t;
+    int<lower=0> fatal_accidents[N];
+}
+
+parameters {
+    real<lower=0> a;
+    real b;
+}
+
+model {
+    vector[N] lambda;
+    a ~ cauchy(0, 10);
+    b ~ cauchy(0, 2.5);
+    for (i in 1:N) {
+        lambda[i] = a + b * t[i];
+    }
+    fatal_accidents ~ poisson(lambda);
+}
+"
+
+stan_NormalDiffuse="
+data {
+    int<lower=0> N;
+    vector[N] t;
+    int<lower=0> fatal_accidents[N];
+}
+
+parameters {
+    real a;
+    real b;
+}
+
+model {
+    vector[N] lambda;
+    a ~ normal(0, 1000);
+    b ~ normal(0, 1000);
+    for (i in 1:N) {
+        lambda[i] = a + b * t[i];
+    }
+    fatal_accidents ~ poisson(lambda);
+}
+
+"
+
+stan_infoNormal="
+data {
+    int<lower=0> N;
+    vector[N] t;
+    int<lower=0> fatal_accidents[N];
+}
+
+parameters {
+    real a;
+    real b;
+}
+
+model {
+    vector[N] lambda;
+    
+    // Informative priors
+    a ~ normal(30, 5);
+    b ~ normal(1, 1.5);
+    
+    for (i in 1:N) {
+        lambda[i] = a + b * t[i];
+    }
+    
+    fatal_accidents ~ poisson(lambda);
+}
+
+"
+
+
+```
+
+```{r}
+stan_data <- list(
+  N = length(BDAdata$t),
+  t = BDAdata$t,
+  fatal_accidents = BDAdata$Fatalaccidents
+)
+```
+
+Fit model with different priors:
+
+```{r include=FALSE}
+fit_flat <- stan(model_code =  stan_flat, data = stan_data, chains = 4, iter = 2000)
+fit_HalfCauchy <- stan(model_code =  stan_HalfCauchy, data = stan_data, chains = 4, iter = 2000)
+fit_NormalDiffuse <- stan(model_code =  stan_NormalDiffuse, data = stan_data, chains = 4, iter = 2000)
+fit_infoNormal <- stan(model_code =  stan_infoNormal, data = stan_data, chains = 4, iter = 2000)
+```
+
+```{r}
+samples_flat <- rstan::extract(fit_flat, permuted = TRUE)
+samples_halfcauchy <- rstan::extract(fit_HalfCauchy, permuted = TRUE)
+samples_diffusenormal <- rstan::extract(fit_NormalDiffuse, permuted = TRUE)
+samples_infonormal <- rstan::extract(fit_infoNormal, permuted = TRUE)
+
+```
+
+```{r}
+summarize_samples <- function(samples) {
+  list(
+    mean_a = round(mean(samples$a),2),
+    sd_a = round(sd(samples$a),2),
+    q025_a = round(quantile(samples$a, 0.025),2),
+    q975_a = round(quantile(samples$a, 0.975),2),
+    mean_b = round(mean(samples$b),2),
+    sd_b = round(sd(samples$b),2),
+    q025_b = round(quantile(samples$b, 0.025),2),
+    q975_b = round(quantile(samples$b, 0.975),2)
+  )
+}
+
+summary_flat <- summarize_samples(samples_flat)
+summary_halfcauchy <- summarize_samples(samples_halfcauchy)
+summary_diffusenormal <- summarize_samples(samples_diffusenormal)
+summary_infonormal <- summarize_samples(samples_infonormal)
+
+summary_df <- data.frame(
+  rbind(
+    cbind(Prior = "Flat", t(summary_flat)),
+    cbind(Prior = "Cauchy", t(summary_halfcauchy)),
+    cbind(Prior = "Normal", t(summary_diffusenormal)),
+    cbind(Prior = "Other", t(summary_infonormal))
+  )
+)
+
+datatable(summary_df, caption = "Summary Statistics Table")
+```
+
+generate prior samples
+
+```{r}
+a_halfcauchy <- rcauchy(10000,0,10)
+b_halfcauchy <- rcauchy(10000,0,2.5)
+prior_sample_hc <- data.frame(a=a_halfcauchy,b=b_halfcauchy)
+
+a_diffuse <- rnorm(40000,0,1000)
+b_diffuse <- rnorm(40000,0,1000)
+prior_sample_diffuse <- data.frame(a=a_diffuse,b=b_diffuse)
+
+a_info <- rnorm(40000,30,5)
+b_info <- rnorm(40000,1,1.5)
+prior_sample_info <- data.frame(a=a_info,b=b_info)
+```
+
+```{r}
+density_flat_post <- kde2d(samples_flat$a,samples_flat$b,n=100)
+contour(density_flat_post, main = "flat posterior samples for a and b",
+         xlab = "a", ylab = "b", las = 1, col = topo.colors(5))
+```
+
+Contour plots of prior vs posterior:Half Cauchy
+
+```{r}
+density_hc_prior <- kde2d(prior_sample_hc$a, prior_sample_hc$b, n = 100)  # 'n' controls the grid size
+density_hc_post <- kde2d(samples_halfcauchy$a,samples_halfcauchy$b,n=100)
+par(mfrow=c(1,2))
+contour(density_hc_prior, main = "Half Cauchy prior samples for a and b",
+         xlab = "a", ylab = "b", las = 1, col = topo.colors(5),xlim = c(-1000,1000),ylim = c(-1000,1000) )
+contour(density_hc_post, main = "Half Cauchy posterior samples for a and b",
+         xlab = "a", ylab = "b", las = 1, col = topo.colors(5))
+```
+
+Contour plots of prior vs posterior:Diffuse
+
+```{r}
+density_diffuse_prior <- kde2d(prior_sample_diffuse$a, prior_sample_diffuse$b, n = 100)  # 'n' controls the grid size
+density_diffuse_post <- kde2d(samples_diffusenormal$a,samples_diffusenormal$b,n=100)
+par(mfrow=c(1,2))
+contour(density_diffuse_prior, main = "Diffuse prior samples for a and b",
+         xlab = "a", ylab = "b", las = 1, col = topo.colors(5),xlim = c(-3000,3000),ylim = c(-3000,3000) )
+contour(density_diffuse_post, main = "Diffuse posterior samples for a and b",
+         xlab = "a", ylab = "b", las = 1, col = topo.colors(5))
+```
+
+Contour plots of prior vs posterior:informative
+
+```{r}
+density_info_prior <- kde2d(prior_sample_info$a, prior_sample_info$b, n = 100)  # 'n' controls the grid size
+density_info_post <- kde2d(samples_infonormal$a,samples_infonormal$b,n=100)
+par(mfrow=c(1,2))
+contour(density_info_prior, main = "Informative prior samples for a and b",
+         xlab = "a", ylab = "b", las = 1, col = topo.colors(5),xlim = c(-10,70),ylim = c(-50,50) )
+contour(density_info_post, main = "Informative posterior samples for a and b",
+         xlab = "a", ylab = "b", las = 1, col = topo.colors(5))
+```
+
+```{r}
+# Simulated posterior samples for illustration
+
+a_samples <- samples_halfcauchy$a
+b_samples <- samples_halfcauchy$b
+
+# Assuming t is a scalar
+t <- 10  # For example
+
+# If t is a vector, then the simulation will produce predictive samples for each value of t
+# t <- c(1,2,3,4,5)  # For example
+
+# Calculate lambda for all samples
+lambda_samples <- a_samples + b_samples * t
+
+# Draw from Poisson distribution
+y_pred_samples <- rpois(4000, lambda_samples)
+
+h <- hist(y_pred_samples)
+max_bin_index <- which.max(h$counts)
+x_max <- h$mids[max_bin_index]
+q2_5 <- quantile(y_pred_samples, 0.025)
+q97_5 <- quantile(y_pred_samples, 0.975)
+plot.new()
+hist(y_pred_samples, border="gray", col="lightblue",nclass=50)
+abline(v=c(x_max, q2_5, q97_5), col=c("red", "purple", "orange"), lwd=2)
+axis(1, at=c(x_max, q2_5, q97_5), labels=round(c(x_max, q2_5, q97_5), 2), lwd.ticks=2, cex.axis=1.2, padj=c(-0.5, -1.2, -1.2))
+```
+
+```{r}
+# Simulated posterior samples for illustration
+
+a_samples <- samples_diffusenormal$a
+b_samples <- samples_diffusenormal$b
+
+# Assuming t is a scalar
+t <- 10  # For example
+
+# If t is a vector, then the simulation will produce predictive samples for each value of t
+# t <- c(1,2,3,4,5)  # For example
+
+# Calculate lambda for all samples
+lambda_samples <- a_samples + b_samples * t
+
+# Draw from Poisson distribution
+y_pred_samples <- rpois(4000, lambda_samples)
+
+h <- hist(y_pred_samples)
+max_bin_index <- which.max(h$counts)
+x_max <- h$mids[max_bin_index]
+q2_5 <- quantile(y_pred_samples, 0.025)
+q97_5 <- quantile(y_pred_samples, 0.975)
+plot.new()
+hist(y_pred_samples, border="gray", col="lightblue",nclass=50)
+abline(v=c(x_max, q2_5, q97_5), col=c("red", "purple", "orange"), lwd=2)
+axis(1, at=c(x_max, q2_5, q97_5), labels=round(c(x_max, q2_5, q97_5), 2), lwd.ticks=2, cex.axis=1.2, padj=c(-0.5, -1.2, -1.2))
+```
+
+```{r}
+# Simulated posterior samples for illustration
+
+a_samples <- samples_infonormal$a
+b_samples <- samples_infonormal$b
+
+# Assuming t is a scalar
+t <- 10  # For example
+
+# If t is a vector, then the simulation will produce predictive samples for each value of t
+# t <- c(1,2,3,4,5)  # For example
+
+# Calculate lambda for all samples
+lambda_samples <- a_samples + b_samples * t
+
+# Draw from Poisson distribution
+y_pred_samples <- rpois(4000, lambda_samples)
+
+h <- hist(y_pred_samples)
+max_bin_index <- which.max(h$counts)
+x_max <- h$mids[max_bin_index]
+q2_5 <- quantile(y_pred_samples, 0.025)
+q97_5 <- quantile(y_pred_samples, 0.975)
+plot.new()
+hist(y_pred_samples, border="gray", col="lightblue",nclass=50)
+abline(v=c(x_max, q2_5, q97_5), col=c("red", "purple", "orange"), lwd=2)
+axis(1, at=c(x_max, q2_5, q97_5), labels=round(c(x_max, q2_5, q97_5), 2), lwd.ticks=2, cex.axis=1.2, padj=c(-0.5, -1.2, -1.2))
+
+```
