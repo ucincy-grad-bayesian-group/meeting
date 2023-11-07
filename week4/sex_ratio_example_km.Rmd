@@ -1,0 +1,361 @@
+---
+title: "Weakly Informative Examples"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Do beautiful parents have more daughters?
+
+```{r message=FALSE, warning=FALSE}
+library(rstan)
+
+data_list <- list(
+  n_attractive = 300,
+  n_daughters_attractive = 170,
+  n_nonattractive = 2700,
+  n_daughters_nonattractive = 1310
+)
+
+dat_frm <- matrix(c(170,300,0.567, 1310,2700, 0.485), 2, 3, byrow = T)
+rownames(dat_frm) <- c("Beautiful Parents", "Other Parents")
+colnames(dat_frm) <- c("Daughters", "Total", "Proportion")
+
+print(dat_frm)
+```
+
+## Model with uniform prior
+
+$y_1\sim Binomial(300,p_1)$,$y_0 \sim Binomial(2700, p_0)$, 
+```{r}
+stan_code_uniform<- "
+data {
+  int<lower=0> n_attractive;      // Total number of attractive parents
+  int<lower=0> n_daughters_attractive;  // Number of attractive parents with daughters
+  
+  int<lower=0> n_nonattractive;      // Total number of non-attractive parents
+  int<lower=0> n_daughters_nonattractive;  // Number of non-attractive parents with daughters
+}
+
+parameters {
+  real<lower=0, upper=1> p_nonattractive;  // Proportion of non-attractive parents having daughters
+  real<lower=0, upper=1> p_attractive;      // 
+}
+
+transformed parameters {
+  real<lower=-1, upper=1> difference =p_attractive- p_nonattractive;  // Calculate p_attractive from difference
+}
+
+model {
+  // Uniform priors
+  p_nonattractive ~ uniform(0, 1);
+  p_attractive ~ uniform(0, 1);
+
+  // Binomial likelihood
+  n_daughters_attractive ~ binomial(n_attractive, p_attractive);
+  n_daughters_nonattractive ~ binomial(n_nonattractive, p_nonattractive);
+}
+
+
+"
+
+model2 <- stan_model(model_code=stan_code_uniform)
+# Sample from the model
+fit2 <- sampling(model2, data=data_list, chains=4, iter=20000, warmup=1000, cores=4, refresh=0)
+print(fit2, digits=3)
+```
+% of MCMC with diff>0
+
+```{r}
+vec = extract(fit2)$difference
+pct = sum(vec>0)/length(vec)
+print(pct)
+```
+
+Plot histogram for posterior MCMC sample for difference
+
+```{r}
+
+print(hist(extract(fit2)$difference, breaks = 50, main = 'Model 1, MCMC sample for diff', xlab='diff'))
+```
+
+
+
+
+## Model with weakly informative prior on difference
+
+$y_1\sim Binomial(300,p_1)$,$y_0 \sim Binomial(2700, p_0)$, reparameterized to $p_0$ and $p_{diff} = p_1-p_0$
+
+Assuming the difference p1-p0 is less than 1.5% with 95% probability. The intuition is that p0 is 0.485,and we don't believe p1 is greater than 0.5
+
+Let's plot the prior distribution of p_1:
+
+
+```{r}
+# Prior of p_att (aka P_1)
+p_1_prior = function(x) {
+  if (0 < x & x < 1) {
+    return(pnorm((1-x)/sqrt(0.007))-pnorm(-x/sqrt(0.007)))
+  } else {
+    return(0)
+  }
+}
+
+x = seq(-1,2,0.01)
+y=sapply(x, p_1_prior)
+plot(x,y, type='l', main = 'Prior Distribution of p_att', ylab="Density", xlab="p_att")#, xaxs='i', yaxs='i')
+
+# Prior of p_oth (aka P_0)
+p_0_prior = function(x) {if (0<x & x<1) {return(1)} else {return(0)}}
+x = seq(-1,2,0.01)
+y=sapply(x, p_0_prior)
+plot(x,y, type='l', main = 'Prior Distribution of p_oth', ylab="Density", xlab="p_oth")#, xaxs='i', yaxs='i')
+
+```
+
+
+
+
+
+```{r}
+library(rgl)
+library(colorRamps)
+
+joint_prior = function(x) {
+  if(0<x[1] & x[1]<1) {
+    return(dnorm(x[2], x[1], 0.007))
+  } else {
+    return(0)
+  }
+}
+df1 = as.data.frame(expand.grid(seq(0,1,0.01), seq(0,1,0.01)))
+names(df1) = c('p_oth', 'p_att')
+df1$joint_prior = apply(df1, 1, joint_prior)
+
+rbPal <- colorRampPalette(c('grey', 'red'))
+df1$col <- rbPal(10)[as.numeric(cut(df1$joint_prior,breaks = 10))]
+
+plot3d( 
+  x=df1$`p_oth`, y=df1$`p_att`, z=df1$`joint_prior`, 
+  type = 'l', 
+  col = df1$col,
+  radius = .1,
+  xlab="p_oth", ylab="p_att", zlab="Density")
+
+```
+
+What % of the density of p_att aka p_1 is less than 0 and greater than 1?
+
+```{r}
+run_draw = function(x) {
+  p_oth = runif(1)
+  p_att = rnorm(1, p_oth, sqrt(0.007))
+  return(p_att)
+}
+
+prior_draws = sapply(1:100000, run_draw)
+print("Proportion of p_att distirbution <0:")
+sum(prior_draws<0)/length(prior_draws)
+print("Proportion of p_att distirbution >1:")
+sum(prior_draws>1)/length(prior_draws)
+
+```
+
+Run the model with weakly informative priors:
+
+
+```{r}
+stan_code_weakly_inform <- "
+data {
+  int<lower=0> n_attractive;      // Total number of attractive parents
+  int<lower=0> n_daughters_attractive;  // Number of attractive parents with daughters
+  
+  int<lower=0> n_nonattractive;      // Total number of non-attractive parents
+  int<lower=0> n_daughters_nonattractive;  // Number of non-attractive parents with daughters
+}
+
+parameters {
+  real<lower=0, upper=1> p_nonattractive;  // Proportion of non-attractive parents having daughters
+  real<lower=-1, upper=1> difference;      // p_attractive - p_nonattractive
+}
+
+transformed parameters {
+  real<lower=0, upper=1> p_attractive = p_nonattractive + difference;  // Calculate p_attractive from difference
+}
+
+model {
+  // Uniform priors
+  p_nonattractive ~ uniform(0, 1);
+  difference ~ normal(0, 0.007);
+  // Binomial likelihood
+  n_daughters_attractive ~ binomial(n_attractive, p_attractive);
+  n_daughters_nonattractive ~ binomial(n_nonattractive, p_nonattractive);
+}
+
+
+"
+
+model4 <- stan_model(model_code=stan_code_weakly_inform)
+
+
+# Sample from the model
+fit4 <- sampling(model4, data=data_list, chains=4, iter=20000, warmup=1000, cores=4, refresh=0)
+print(fit4, digits=3)
+```
+
+
+% of MCMC with diff>0
+
+```{r}
+vec = extract(fit4)$difference
+pct = sum(vec>0)/length(vec)
+print(pct)
+```
+
+Plot histogram of posterior dist for difference:
+
+```{r}
+print(hist(extract(fit4)$difference, breaks = 50, main = 'Model 2, MCMC sample for diff', xlab='diff'))
+
+```
+
+
+
+
+
+
+
+```{r}
+stan_code_weakly_inform <- "
+data {
+  int<lower=0> n_attractive;      // Total number of attractive parents
+  int<lower=0> n_daughters_attractive;  // Number of attractive parents with daughters
+  
+  int<lower=0> n_nonattractive;      // Total number of non-attractive parents
+  int<lower=0> n_daughters_nonattractive;  // Number of non-attractive parents with daughters
+}
+
+parameters {
+  real<lower=0, upper=1> p_nonattractive;  // Proportion of non-attractive parents having daughters
+  real<lower=-1, upper=1> difference;      // p_attractive - p_nonattractive
+}
+
+transformed parameters {
+  real<lower=0, upper=1> p_attractive = p_nonattractive + difference;  // Calculate p_attractive from difference
+}
+
+model {
+  // Uniform priors
+  p_nonattractive ~ uniform(0, 1);
+  difference ~ normal(0, 0.007);
+  // Binomial likelihood
+  n_daughters_attractive ~ binomial(n_attractive, p_attractive);
+  n_daughters_nonattractive ~ binomial(n_nonattractive, p_nonattractive);
+}
+
+
+"
+
+model4 <- stan_model(model_code=stan_code_weakly_inform)
+
+
+# Sample from the model
+fit4 <- sampling(model4, data=data_list, chains=4, iter=2000, warmup=1000, cores=4, refresh=0)
+print(fit4, digits=3)
+```
+
+fit4
+
+
+
+```{r}
+# Run this only once! This accrues the results from all simulations.
+#simulation_results = list()
+```
+
+
+```{r}
+
+simulation_run = function(prior_diff_var = 0.07, true_p_attractive = 0.49, true_p_nonattractive = 0.49, nsim = 2, 
+                          simulation_results_list = simulation_results) {
+    
+  stan_code_weakly_inform <- paste0("
+  data {
+    int<lower=0> n_attractive;      // Total number of attractive parents
+    int<lower=0> n_daughters_attractive;  // Number of attractive parents with daughters
+    
+    int<lower=0> n_nonattractive;      // Total number of non-attractive parents
+    int<lower=0> n_daughters_nonattractive;  // Number of non-attractive parents with daughters
+  }
+  
+  parameters {
+    real<lower=0, upper=1> p_nonattractive;  // Proportion of non-attractive parents having daughters
+    real<lower=-1, upper=1> difference;      // p_attractive - p_nonattractive
+  }
+  
+  transformed parameters {
+    real<lower=0, upper=1> p_attractive = p_nonattractive + difference;  // Calculate p_attractive from difference
+  }
+  
+  model {
+    // Uniform priors
+    p_nonattractive ~ uniform(0, 1);
+    difference ~ normal(0, ", prior_diff_var, ");
+    // Binomial likelihood
+    n_daughters_attractive ~ binomial(n_attractive, p_attractive);
+    n_daughters_nonattractive ~ binomial(n_nonattractive, p_nonattractive);
+  }
+  ")
+  start_time <- Sys.time()
+  model5 <- stan_model(model_code=stan_code_weakly_inform)
+  end_time <- Sys.time()
+  print(end_time-start_time)
+  
+  sim_vector = NULL
+  for (i in 1:nsim) {
+    print(i) # print every 100 to show progress
+    start_time <- Sys.time()
+      data_list <- list(
+        n_attractive = 300, n_daughters_attractive = rbinom(1, 300, true_p_attractive),
+        n_nonattractive = 2700, n_daughters_nonattractive = rbinom(1, 2700, true_p_nonattractive)
+      )
+    
+    # Sample from the model
+    fit5 <- sampling(model5, data=data_list, chains=4, iter=3000, warmup=1000, cores=4, refresh=0)  
+    # record 1 of the CI excludes 0 on the lower side, and 0 otherwise
+    lower_ci_bound = summary(fit5)$summary["difference","2.5%"]
+    sim_vector = c(sim_vector, 0<lower_ci_bound)
+    end_time <- Sys.time()
+    print(end_time-start_time)
+  }
+  
+  simID = paste0('prior_diff_var = ', prior_diff_var,', true_p_attractive = ', true_p_attractive, ', true_p_nonattractive = ', true_p_nonattractive)
+  
+  simulation_results_list[[simID]] = c(simulation_results_list[[simID]], sim_vector)
+  return(simulation_results_list)
+}
+
+
+```
+
+
+```{r}
+
+# Type 1 error
+simulation_results = simulation_run(prior_diff_var = 0.007, true_p_attractive = 0.59, true_p_nonattractive = 0.49, nsim = 10000)
+
+```
+
+
+```{r}
+
+# Type 1 error
+simulation_results = simulation_run(prior_diff_var = 100, true_p_attractive = 0.49, true_p_nonattractive = 0.49, nsim = 10000)
+simulation_results = simulation_run(prior_diff_var = 0.007, true_p_attractive = 0.49, true_p_nonattractive = 0.49, nsim = 10000)
+
+# Power for true_p_attractive = 0.59, true_p_nonattractive = 0.49
+simulation_results = simulation_run(prior_diff_var = 100, true_p_attractive = 0.59, true_p_nonattractive = 0.49, nsim = 10000)
+simulation_results = simulation_run(prior_diff_var = 0.007, true_p_attractive = 0.59, true_p_nonattractive = 0.49, nsim = 10000)
+
+```
+

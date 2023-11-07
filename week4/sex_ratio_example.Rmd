@@ -1,0 +1,366 @@
+---
+title: "Weakly Informative Examples"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Do beautiful parents have more daughters?
+
+```{r message=FALSE, warning=FALSE}
+library(rstan)
+
+data_list <- list(
+  n_attractive = 300,
+  n_daughters_attractive = 170,
+  n_nonattractive = 2700,
+  n_daughters_nonattractive = 1310
+)
+
+dat_frm <- matrix(c(170,300,0.567, 1310,2700, 0.485), 2, 3, byrow = T)
+rownames(dat_frm) <- c("Beautiful", "Average")
+colnames(dat_frm) <- c("Daughters", "Total", "Proportion")
+
+print(dat_frm)
+```
+
+## Model with uniform prior
+
+$y_1\sim Binomial(300,p_1)$,$y_0 \sim Binomial(2700, p_0)$, 
+```{r}
+stan_code_uniform<- "
+data {
+  int<lower=0> n_attractive;      // Total number of attractive parents
+  int<lower=0> n_daughters_attractive;  // Number of attractive parents with daughters
+  
+  int<lower=0> n_nonattractive;      // Total number of non-attractive parents
+  int<lower=0> n_daughters_nonattractive;  // Number of non-attractive parents with daughters
+}
+
+parameters {
+  real<lower=0, upper=1> p_nonattractive;  // Proportion of non-attractive parents having daughters
+  real<lower=-1, upper=1> p_attractive;      // 
+}
+
+transformed parameters {
+  real<lower=0, upper=1> difference =p_attractive- p_nonattractive;  // Calculate p_attractive from difference
+}
+
+model {
+  // Uniform priors
+  p_nonattractive ~ uniform(0, 1);
+  p_attractive ~ uniform(0, 1);
+
+  // Binomial likelihood
+  n_daughters_attractive ~ binomial(n_attractive, p_attractive);
+  n_daughters_nonattractive ~ binomial(n_nonattractive, p_nonattractive);
+}
+
+
+"
+
+model2 <- stan_model(model_code=stan_code_uniform)
+# Sample from the model
+fit2 <- sampling(model2, data=data_list, chains=4, iter=2000, warmup=1000, cores=4, refresh=0)
+print(fit2, digits=3)
+```
+
+## What does non-informative prior mean here?
+
+Distribution of sample mean for the beautiful parents group.
+
+```{r}
+n <- 300
+reject_lb <- 0.49 - 1.96*sqrt(1/n*0.49*0.51) 
+reject_ub <- 0.49 + 1.96*sqrt(1/n*0.49*0.51) 
+
+# Parameters for the normal distribution
+
+
+# Plot the density
+par(mfrow=c(2,2))
+mean_val <- 0.51
+sd_val <- sqrt(1/n*mean_val*(1-mean_val))
+curve(dnorm(x, mean=mean_val, sd=sd_val), 
+      from = 0.4, 
+      to = 0.7, 
+      ylab="Density", xlab="Value",
+      main="True Mean = 0.51, likelihood = 2",
+      lwd=2, col="blue")
+
+grid()
+#abline(v=0.49)
+abline(v=0.51,col=2)
+abline(v=170/300,col=3,lwd=2)
+
+mean_val <- 0.54
+sd_val <- sqrt(1/n*mean_val*(1-mean_val))
+curve(dnorm(x, mean=mean_val, sd=sd_val), 
+      from = 0.4, 
+      to = 0.7, 
+      ylab="Density", xlab="Value",
+      main="True Mean = 0.53, likelihood = 10",
+      lwd=2, col="blue")
+
+grid()
+#abline(v=0.49)
+abline(v=0.54,col=2)
+abline(v=170/300,col=3,lwd=2)
+
+
+mean_val <- 0.57
+sd_val <- sqrt(1/n*mean_val*(1-mean_val))
+curve(dnorm(x, mean=mean_val, sd=sd_val), 
+      from = 0.4, 
+      to = 0.7, 
+      ylab="Density", xlab="Value",
+      main="True Mean = 0.57, likelihood = 14",
+      lwd=2, col="blue")
+
+grid()
+#abline(v=0.49)
+#abline(v=0.56,col=2)
+abline(v=170/300,col=3,lwd=2)
+
+mean_val <- 0.6
+sd_val <- sqrt(1/n*mean_val*(1-mean_val))
+curve(dnorm(x, mean=mean_val, sd=sd_val), 
+      from = 0.4, 
+      to = 0.7, 
+      ylab="Density", xlab="Value",
+      main="True Mean = 0.6, likelihood = 8",
+      lwd=2, col="blue")
+
+grid()
+#abline(v=0.49)
+abline(v=0.6,col=2)
+abline(v=170/300,col=3,lwd=2)
+
+```
+
+
+Uniform prior means that the posterior probability of each senario only depends on the likelihood.
+
+
+## Model with weakly informative prior on difference
+
+$y_1\sim Binomial(300,p_1)$,$y_0 \sim Binomial(2700, p_0)$, reparameterized to $p_0$ and $p_{diff} = p_1-p_0$
+
+Assuming the difference p1-p0 is less than 1.5% with 95% probability. The intuition is that p0 is 0.485,and we don't believe p1 is greater than 0.5
+
+```{r}
+stan_code_weakly_inform <- "
+data {
+  int<lower=0> n_attractive;      // Total number of attractive parents
+  int<lower=0> n_daughters_attractive;  // Number of attractive parents with daughters
+  
+  int<lower=0> n_nonattractive;      // Total number of non-attractive parents
+  int<lower=0> n_daughters_nonattractive;  // Number of non-attractive parents with daughters
+}
+
+parameters {
+  real<lower=0, upper=1> p_nonattractive;  // Proportion of non-attractive parents having daughters
+  real<lower=-1, upper=1> difference;      // p_attractive - p_nonattractive
+}
+
+transformed parameters {
+  real<lower=0, upper=1> p_attractive = p_nonattractive + difference;  // Calculate p_attractive from difference
+}
+
+model {
+  // Uniform priors
+  p_nonattractive ~ uniform(0, 1);
+  difference ~ normal(0, 0.007);
+
+  // Binomial likelihood
+  n_daughters_attractive ~ binomial(n_attractive, p_attractive);
+  n_daughters_nonattractive ~ binomial(n_nonattractive, p_nonattractive);
+}
+
+
+"
+
+model4 <- stan_model(model_code=stan_code_weakly_inform)
+
+
+# Sample from the model
+fit4 <- sampling(model4, data=data_list, chains=4, iter=2000, warmup=1000, cores=4, refresh=0)
+print(fit4, digits=3)
+```
+
+## Complete seperation problem in Logistic Regression
+
+The complete separation problem arises in logistic regression when the outcome variable can be perfectly predicted by one or more predictors. This causes the maximum likelihood estimates for the coefficients to be infinite, which is problematic for interpretation and for making predictions.
+
+### Sample Data
+
+```{r}
+set.seed(123)
+x <- c(rep(0,50),rep(1,50))
+y <- (x==0)*rbinom(50,1,0.5)+(x>0)*1
+table(x,y)
+```
+
+### Logistic Regression Model
+
+Logistic Regression: $y\sim Bernoulli(p)$
+
+$$log(\frac{p}{1-p})=\alpha + \beta*x$$
+
+$$p = \frac{e^{\alpha + \beta*x}}{1+e^{\alpha + \beta*x}}$$ Reparameterization $\beta_0=\alpha , \beta_1 = \beta+\alpha$:
+
+When $x=0$,
+
+$$log(\frac{p}{1-p})=\beta_0 \Rightarrow p=\frac{e^{\beta_0}}{1+e^{\beta_0}}$$;
+
+When $x=1$, $$log(\frac{p}{1-p})=\beta_1 \Rightarrow p=\frac{e^{\beta_1}}{1+e^{\beta_1}}$$
+
+Likelihood:
+
+$$L(\beta \mid Data ) = p^{25}_{x=0}(1-p_{x=0})^{25}p^{50}_{x=1}$$ $$L(\beta\mid Data )=\left(\frac{e^{\beta_0}}{1+e^{\beta_0}}\right)^{25}\left(\frac{1}{1+e^{\beta_0}}\right)^{25}\left(\frac{e^{\beta_1}}{1+e^{\beta_1}}\right)^{50}$$
+
+To maximize the likelihood, $\beta_1$ has to go to infinity.
+
+## Bayesian with flat prior and frequentist glm blow up
+
+```{r}
+
+
+# This will fail with traditional glm:
+# glm.fit <- glm(y ~ x, family = binomial())
+# Warning message:
+# glm.fit: algorithm did not converge
+
+# Using RStan:
+
+library(rstan)
+
+# Model specification
+stan_model_flat <- "
+data {
+  int<lower=0> N;
+  vector[N] x;
+  int<lower=0,upper=1> y[N];
+}
+parameters {
+  real alpha;
+  real beta;
+}
+model {
+  y ~ bernoulli_logit(alpha + beta * x);
+}
+"
+
+# Compiling and fitting
+fit_flat <- stan(model_code = stan_model_flat, data = list(N = length(y), x = x, y = y), refresh=0)
+
+# Viewing results
+print(fit_flat)
+
+summary(glm(y~x, family=binomial))
+```
+
+## Let's put some information in the model
+
+```{r}
+logistic_prob <- function(coef,p){
+  1/(1+exp(-5)*(1-p)/p)
+}
+
+p <- seq(0,1,length.out=1000)
+p_new <- logistic_prob(5, p)
+plot(p,p_new, type="line")
+
+# Load necessary libraries
+library(ggplot2)
+# Parameters for the t-distribution
+df <- 7
+scale <- 2.5
+
+# Values for plotting
+x_value <- seq(-10*scale, 10*scale, length.out = 1000)
+y_value <- dt(x_value/scale, df=df)
+
+# Quantiles
+q10 <- 2.5*qt(0.10, df=df) * scale
+q90 <- 2.5*qt(0.90, df=df) * scale
+
+# Plot
+plot(x_value, y_value, type="l", lwd=2, ylab="Density", xlab="Value",
+     main="Density of scaled t-distribution")
+
+# Add vertical lines for the quantiles
+abline(v=q10, col="red", lty=2)
+abline(v=q90, col="red", lty=2)
+
+# Add text labels for the quantiles
+text(q10, 0.05, "10%", pos=4, col="red")
+text(q90, 0.05, "90%", pos=2, col="red")
+
+
+
+```
+
+## Logistic Regression (t distribution)
+
+
+```{r}
+
+
+
+# Model specification
+stan_model_t7_2.5 <- "
+data {
+  int<lower=0> N;
+  vector[N] x;
+  int<lower=0,upper=1> y[N];
+}
+parameters {
+  real alpha;
+  real beta;
+}
+model {
+  y ~ bernoulli_logit(alpha + beta * x);
+  alpha ~ student_t(7, 0, 2.5);
+  beta ~ student_t(7, 0, 2.5);
+}
+"
+
+# Compiling and fitting
+fit_t7_2.5 <- stan(model_code = stan_model_t7_2.5, data = list(N = length(y), x = x, y = y), refresh=0)
+
+# Viewing results
+print(fit_t7_2.5)
+
+# Model specification
+stan_model_norm2.5 <- "
+data {
+  int<lower=0> N;
+  vector[N] x;
+  int<lower=0,upper=1> y[N];
+}
+parameters {
+  real alpha;
+  real beta;
+}
+model {
+  y ~ bernoulli_logit(alpha + beta * x);
+  alpha ~ normal(0,2.5);
+  beta ~ normal(0,2.5);
+}
+"
+
+# Compiling and fitting
+fit_norm2.5 <- stan(model_code = stan_model_norm2.5, data = list(N = length(y), x = x, y = y), refresh=0)
+
+# Viewing results
+print(fit_norm2.5)
+
+
+```
+
+
+## Conclusion
+
+1. Without any prior information, the data might not be able to speak for itself.
+2. We use less information than we actually have, but enough to give a stable answer.
