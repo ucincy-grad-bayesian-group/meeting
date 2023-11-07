@@ -21,7 +21,7 @@ Our meetings are held every Wednesday at 5:00 PM in the Department of Statistics
 
 - **Week 0:** Opening Ceromony [Slide](/meeting/week0/Bayesian_Reading_Group_Intro.pdf)
 
-- **Week 1:** Modelling and Posterior Predictive Check for football data. Yuan introduced the posterior predictive check technique as a general and flexible bayesian model checking method. [R Markdown](). [Html]().
+- **Week 1:** Modelling and Posterior Predictive Check for football data. Yuan introduced the posterior predictive check technique as a general and flexible bayesian model checking method. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/football_normal.Rmd). [Html](/meeting/week1/football_normal.html).
 - 
 - **Week 5:**
   - Theory of Model Comparison Criterions: Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/model_comparison.Rmd). [Html](/meeting/week5/model_comparison.html)
