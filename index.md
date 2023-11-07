@@ -23,7 +23,7 @@ If you're a UC grad student interested in statistics and data science, we'd love
 
 ## Recent Discussions
 
-- **Week 1:**: Opening Ceromony 
+- **Week 1:** Opening Ceromony [Slides](/meeting/week1)
 
 - **Week 5:**
   - Theory of Model Comparison Criterions: Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/model_comparison.Rmd). [Html](/meeting/week5/model_comparison.html)
