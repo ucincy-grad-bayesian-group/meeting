@@ -23,7 +23,7 @@ If you're a UC grad student interested in statistics and data science, we'd love
 
 ## Recent Discussions
 - **Week 5:**
-  - Theory of Model Comparison Criterions: Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC. [R Markdown](/meeting/week5/model_comparison.md).[Html] (/meeting/week5/model_comparison.html)
+  - Theory of Model Comparison Criterions: Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC. [R Markdown](/meeting/week5/model_comparison.md)[Html](/meeting/week5/model_comparison.html)
   - Application: Eric showed how to calculate the model comparison criterions for Rstan Models. [R Markdown]()
 
 
