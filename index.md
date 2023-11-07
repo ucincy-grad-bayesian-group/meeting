@@ -22,7 +22,9 @@ Our meetings are held every Wednesday at 5:00 PM in the Department of Statistics
 If you're a UC grad student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:stats-group@uc.edu) for more information.
 
 ## Recent Discussions
-- [Week 5: Model Comparison Criterions](/meeting/model_comparison.html): Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC. 
+- **Week 5:**
+  - [Theory of Model Comparison Criterions](/meeting/model_comparison.html): Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC.
+  - [Application](): Eric showed how to apply the model comparison criterions in R.
 
 
 ## Contact
