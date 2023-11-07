@@ -1,0 +1,410 @@
+---
+title: "Football Winning Probability Winning"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+## Data Description
+
+```{r Load packages and data, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(rstan)
+library(moments)
+options(mc.cores = parallel::detectCores()-1)
+
+dat <- read.table("https://drive.google.com/uc?export=download&id=1SY0vPf9TVz_jo7qtq6wuFuxmL3aqNUda",header=T)
+head(dat)
+dim(dat)
+```
+
+-   home: A binary variable indicating the venue of the game for the favorite team. If home is 1, then the favorite team played at their home stadium. If home is 0, then they played away.
+
+-   favorite: The number of points scored by the team that was favored to win (according to pre-game odds or expert predictions).
+
+-   underdog: The number of points scored by the team that was expected to lose or was not the favored team.
+
+-   spread: The point spread set by bookmakers. This is an estimate of the expected point difference between the favorite and the underdog.
+
+-   favorite.name: The name (or abbreviation) of the team that was favored to win.
+
+-   underdog.name: The name (or abbreviation) of the team that was the underdog.
+
+-   week: The week of the football season in which the game took place.
+
+### Question:
+
+**How to estimate the following probabilities?**
+
+-   $Pr(\text{favorite wins} \mid spread = 3.5)$
+-   $Pr(\text{favorite wins} \mid spread = 8.5)$
+-   $Pr(\text{favorite wins} \mid spread = 9.5)$
+
+Empirical estimates are not precise:
+
+-   $\hat{Pr}(\text{favorite wins} \mid spread = 8.5)= 0.81$
+-   $\hat{Pr}(\text{favorite wins} \mid spread = 9)= 0.73$
+
+## Data Visualization
+
+```{r Explore data}
+score_difference <- dat$favorite - dat$underdog
+spread <- dat$spread
+spread_jitter <- spread + rnorm(length(spread),0,0.05)
+par(mfrow=c(1,2))
+plot(spread_jitter , score_difference, xlab="spread",pch=19, cex=0.2)
+abline(h=0)
+plot(spread_jitter, score_difference-spread, xlab="spread",pch=19, cex=0.2)
+abline(h=0)
+```
+
+## Modelling
+
+### Normal model with unknown mean and variance
+
+Let $y_i$ = outcome difference for the ith game, $x_i$= point spread for the ith game
+
+Assume $y_i \stackrel{\text{i.i.d.}}{\sim} N(x_i+\mu,\sigma^2)$
+
+$$p(y_i\mid x_i,\mu,\sigma) =\frac{1}{\sqrt{2\pi\sigma^2}}e^{-\frac{(y_i-x_i-\mu)^2}{2\sigma^2}}$$
+
+We are interested in the posterior dist. of $\mu,\sigma$ $$p(\mu,\sigma \mid \mathbf{y},\mathbf{x}) \propto p(\mu,\sigma)p(\mathbf{y}\mid \mu,\sigma,\mathbf{x})$$
+
+Because $Pr(y_i>0\mid x_i=3.5)= Pr(Normal(3.5+\mu,\sigma^2)>0)=1-\Phi(\frac{-(3.5+\mu)}{\sigma})$
+
+```{r Fit a normal model, message=FALSE}
+
+y <- score_difference
+n <- length(y)
+# Stan model as a character string
+t0 <- Sys.time()
+stan_code <- "
+
+// data block: this block defines the data that will be input into the model.
+
+data {
+  int<lower=0> n;
+  vector[n] y;            // data points
+  vector[n] spread;
+}
+
+// parameters block: this block defines the parameters that the model will estimate.
+parameters {
+  real mu; // mean
+  real<lower=0> sigma;    // standard deviation
+}
+
+// model block: this block defines the probabilistic relationships between the data and the parameters. It specifies the likelihood of the data given the parameters. Prior will be uniform if not specified.
+
+model {
+  y ~ normal(spread + mu, sigma);  // likelihood
+}
+"
+
+# Compile the Stan model
+model <- stan_model(model_code=stan_code)
+
+# Fit the model
+fit <- sampling(model, data=list(n=n,y=y,spread=spread), chains=4, iter=2000,refresh = 0)
+
+print(fit)
+t1 <- Sys.time()
+t1-t0
+```
+
+## Check Model Fitting
+
+### Posterior Predictive Check
+
+**Reference:** Chapter 6 in Bayesian Data Analysis
+
+Probability models in most data analysis will not be perfectly true. The more relevant questions are:
+
+-   What aspects of reality are not captured by the model?
+
+-   Do the model's deficiencies have a noticeable effect on the inference?
+
+One effective way to answer these is through external validation. Using models, we can make predictions about future data. Ideally, 50% intervals should contain the true values half the time.
+
+An approximation of external validation, using the data we already have, is known as *posterior predictive checking*.
+
+If a model fits well, then replicated data generated under the model should look similar to the observed data.
+
+### Mathematical Framework
+
+Let $\mathbf{y},\mathbf{x}$ be the observed data, and $\theta$ be the vector of parameters. Define $\mathbf{y}^{rep}$ as the replicated data that could have been observed under the same model and parameters, $\theta$. The following equations elucidate this relationship:
+
+$$
+\begin{array}{rl}
+p(\mathbf{y}^{rep}\mid \mathbf{y},\mathbf{x}) & = \int p(\theta,\mathbf{y}^{rep}\mid \mathbf{y},\mathbf{x})d\theta \\
+& = \int p(\mathbf{y}^{rep}\mid \theta, \mathbf{y},\mathbf{x})p(\theta \mid \mathbf{y}, \mathbf{x})d\theta\\
+& = \int p(\mathbf{y}^{rep}\mid \theta,\mathbf{x})p(\theta \mid \mathbf{y},\mathbf{x})d\theta
+\end{array}
+$$
+
+From the above equation, to generate $\mathbf{y}^{rep}$, we:
+
+1.  Generate one posterior sample $\theta_{(i)}$ from $p(\theta\mid \mathbf{y},\mathbf{x})$.
+
+2.  Generate $\mathbf{y}^{rep}_{(i)}$ from $p(\mathbf{y}^{rep}\mid \theta_{(i)})$ where $y^{rep}_{(i)j} \sim N(x_j+\mu,\sigma^2)$.
+
+### Data Analysis Techniques
+
+Once we have the replicated data, there are several ways to check for systematic differences:
+
+1.  **Visualization:** Display the observed data, $\mathbf{y}^{rep}_{(i)}$, alongside simulated data from the fitted model.
+
+2.  **Test Statistics and Bayesian p-values:** Examples include:
+
+    -   $P(T(\mathbf{y^{rep}})>T(\mathbf{y})\mid \mathbf{y})$ for kurtosis.
+    -   $P(T(\mathbf{y^{rep}},\mathbf{x},\theta)>T(\mathbf{y},\mathbf{x},\theta)\mid \mathbf{y})$ for tail variance.
+
+### Specific Statistics
+
+**Kurtosis:** $$
+K(\mathbf{y})=\frac{n(n+1)(n-1)}{(n-2)(n-3)} \frac{\sum_{i=1}^n\left(y_i-\bar{y}\right)^4}{\left(\sum_{i=1}^n\left(y_i-\bar{y}\right)^2\right)^2}
+$$
+
+**Tail Variance:** $$
+\sigma^2_t(\mathbf{y},\mathbf{x},\mu)=\frac{1}{n_t}\sum_{x_i>5}(y_i-x_i-\mu)^2
+$$
+
+```{r How well the model fit to the data}
+
+stan_code1 <- "
+data {
+  int<lower=0> n;
+  vector[n] y;            // data points
+  vector[n] spread;
+}
+
+// parameters block: this block defines the parameters that the model will estimate.
+parameters {
+real mu;
+  real<lower=0> sigma;    // standard deviation
+}
+
+// model block: this block defines the probabilistic relationships between the data and the parameters. It specifies the likelihood of the data given the parameters.
+
+model {
+  y ~ normal(spread +mu, sigma);  // likelihood
+  
+}
+// This block defines the posterior predictive quantities 
+generated quantities {
+  real y_pred[n];
+   for (i in 1:n) {
+    y_pred[i] = normal_rng(spread[i] + mu, sigma);
+  };
+}
+
+"
+
+# Compile the Stan model
+model1 <- stan_model(model_code=stan_code1)
+
+# Fit the model
+fit1 <- sampling(model1, data=list(n=n,y=y,spread=spread), chains=4, iter=2000, refresh=0)
+
+#summary(fit1)
+posterior_samples <- extract(fit1, c("y_pred","mu"))
+
+
+# graphic display of data
+for(i in 1:5)
+{
+  # Set the layout to 3x1
+  par(mfrow=c(2,2))
+  
+  plot(spread_jitter, y-spread, pch=19, ylim=c(-50,50),cex=0.2)
+  plot(spread_jitter, posterior_samples$y_pred[i,]-spread, pch=19, ylim=c(-50,50),cex=0.2,ylab="y_rep-spread")
+  
+  hist(y, probability = TRUE, col = rgb(0.2, 0.8, 0.5, 0.5), 
+       xlim = c(-60,60), ylim = c(0, 0.04), 
+       main = "Overlaid Histograms", xlab = "Value", nclass = 16)
+
+  # Overlay the second histogram
+  hist(posterior_samples$y_pred[i,], probability = TRUE, col = rgb(0.8, 0.2, 0.5, 0.5), xlim = c(-60,60), ylim = c(0, 0.04), nclass = 16)
+
+  # Add a legend
+  
+
+
+}
+
+# bayesian p-value for Kurtosis
+
+
+rep_kurt <- rep(NA,4000)
+obs_kurt <- kurtosis(y-spread)
+for(i in 1:4000){
+  rep_kurt[i] <- kurtosis(posterior_samples$y_pred[i, ]-spread)
+}
+
+hist(rep_kurt, main="Test for normal kurtosis,\n bayesian p-value = 0.05")
+abline(v=obs_kurt, lwd=2, col=2)
+
+
+
+# bayesian p-value for tail variance
+rep_tail_var <- rep(NA, 4000)
+obs_tail_var <- rep(NA, 4000)
+rep_tail_var_diff <- rep(NA, 4000)
+for(i in 1:4000){
+  rep_tail_var[i] <- mean((posterior_samples$y_pred[i, spread>10] - spread[spread>10]- posterior_samples$mu[i])^2)
+  obs_tail_var[i] <- mean((y[spread>10] - spread[spread>10]-posterior_samples$mu[i])^2)
+  rep_tail_var_diff[i] <- rep_tail_var[i]-obs_tail_var[i]
+}
+hist(rep_tail_var_diff, main="Test for constant variance,\n bayesian p-value = 0.62")
+abline(v=0)
+
+
+
+
+```
+
+### Try Laplace Distribution (Sharper peak)
+
+```{r}
+
+
+laplace_density <- function(x, mu = 0, b = 1) {
+  (1 / (2 * b)) * exp(-abs(x - mu) / b)
+}
+
+data <- data.frame(x = seq(-5, 5, by = 0.01))
+data$normal <- dnorm(data$x, 0, 1)
+data$laplace <- laplace_density(data$x, 0, 1)
+
+ggplot(data, aes(x)) +
+  geom_line(aes(y = normal, color = "Normal")) +
+  geom_line(aes(y = laplace, color = "Laplace")) +
+  labs(title = "Normal vs. Laplace Distribution", y = "Density") +
+  theme_minimal()
+
+```
+
+### Laplace Distribution in Stan
+
+```{r Try laplace-distribution}
+
+stan_code2 <- "
+data {
+  int<lower=0> n;
+  vector[n] y;            // data points
+  vector[n] spread;
+}
+
+parameters {
+  real mu;
+  real<lower=0> b;
+}
+
+model {
+  y ~ double_exponential(mu+spread, b);
+}
+
+generated quantities {
+  real y_pred[n];
+  for (i in 1:n) {
+    // Generate Laplace random variable from two exponential random variables
+    real exp_val1 = exponential_rng(1/b);
+    real exp_val2 = exponential_rng(1/b);
+    y_pred[i] = mu +spread[i]+ exp_val1 - exp_val2;
+  }
+}
+
+
+"
+
+# Compile the Stan model
+model2 <- stan_model(model_code=stan_code2)
+
+# Fit the model
+fit2 <- sampling(model2, data=list(n=n,y=y, spread=spread), chains=4, iter=2000, refresh=0)
+
+
+#summary(fit1)
+posterior_samples <- extract(fit2, c("y_pred","mu"))
+
+
+
+
+# graphic display of data
+for(i in 1:5)
+{
+  # Set the layout to 3x1
+  par(mfrow=c(2,2))
+  
+  plot(spread_jitter, y-spread, pch=19, ylim=c(-50,50),cex=0.2)
+  plot(spread_jitter, posterior_samples$y_pred[i,]-spread, pch=19, ylim=c(-50,50),cex=0.2,ylab="y_rep-spread")
+  
+  hist(y, probability = TRUE, col = rgb(0.2, 0.8, 0.5, 0.5), 
+       xlim = c(-60,60), ylim = c(0, 0.04), 
+       main = "Overlaid Histograms", xlab = "Value", nclass = 16)
+
+  # Overlay the second histogram
+  hist(posterior_samples$y_pred[i,], probability = TRUE, col = rgb(0.8, 0.2, 0.5, 0.5),  xlim = c(-60,60), ylim = c(0, 0.04), nclass = 32)
+
+  # Add a legend
+
+
+
+}
+
+# bayesian p-value for Kurtosis
+
+par(mfrow=c(1,1))
+rep_kurt <- rep(NA,4000)
+obs_kurt <- kurtosis(y-spread)
+for(i in 1:4000){
+  rep_kurt[i] <- kurtosis(posterior_samples$y_pred[i, ]-spread)
+}
+
+hist(rep_kurt, main="Test for normal kurtosis,\n bayesian p-value = 1")
+abline(v=obs_kurt, lwd=2, col=2)
+
+
+
+```
+
+## Probability Estimation Using Normal Assumption
+
+```{r Probability Estimation}
+
+stan_code3 <- "
+data {
+  int<lower=0> n;
+  vector[n] y;            // data points
+  vector[n] spread;
+}
+
+parameters {
+  real<lower=0> sigma;
+}
+
+model {
+  y ~ normal(spread, sigma);
+}
+
+generated quantities {
+  real p_3_5 = 1 - normal_cdf(0, 3.5, sigma );
+  real p_8_5 = 1 - normal_cdf(0, 8.5, sigma );
+  real p_9 = 1 - normal_cdf(0, 9.5, sigma );
+}
+
+"
+
+# Compile the Stan model
+model3 <- stan_model(model_code=stan_code3)
+
+# Fit the model
+fit3 <- sampling(model3, data=list(n=n,y=y,spread=spread), chains=4, iter=2000,refresh=0)
+
+#summary(fit1)
+posterior_samples <- extract(fit3, c("p_3_5","p_8_5","p_9"))
+quantile(posterior_samples$p_3_5, c(0.025,0.975))
+quantile(posterior_samples$p_8_5, c(0.025,0.975))
+quantile(posterior_samples$p_9, c(0.025,0.975))
+```
