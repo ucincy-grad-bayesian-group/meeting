@@ -1,0 +1,657 @@
+---
+title: "Model Comparison"
+author: "-"
+date: "2023-10-13"
+output: pdf_document
+---
+
+
+
+## Review (Model 1 )
+
+
+```{r, echo=F, message=F, warning=F}
+library("rstan") 
+library(dplyr)
+load("BDAdata.rda")
+library(rstan)
+library(loo)
+library(bayesplot)
+library(kableExtra)
+```
+
+
+
+
+
+- **Model Setup**
+
+$$
+\begin{aligned}
+\text{likelihood}: \quad X|\theta \sim Poisson(\theta) \\
+\text{Prior}:\quad \theta \sim Gamma(\alpha, \  \beta)  \\
+\end{aligned}
+$$
+
+
+- **Posterior**
+
+$$\theta|X   \sim  \text{Gamma}(\alpha+\sum_{i=1}^n y_i,\ \beta+n)$$  
+
+
+
+- **Predictive Distribution**
+
+$$
+\begin{aligned}
+p(y'|y) &= \int p(y',\theta|y)\, d\theta\\
+\end{aligned}
+$$
+
+
+### Model 1. A
+
+- Suppose that the annual counts of fatal accidents in each year are independent Poisson distributions Poisson distribution with  parameter $\theta$.
+
+
+
+
+```{r, message=F, warning=F, echo=T}
+q1.stan_2 =
+  "
+data {
+  int n;               
+  int<lower=0> y[n];  // fatalaccidents
+}
+
+parameters {
+  real<lower=0> theta;
+}
+
+model {
+  theta ~ gamma(0.001, 0.001);        // shape, rate
+  y ~ poisson(theta);         // likelihood
+}
+
+generated quantities {
+   vector[n] log_lik;
+   for (i in 1:n) {
+    log_lik[i] = poisson_lpmf(y[i] | theta);
+   }
+}
+"
+
+```
+
+
+
+```{r, echo=T, include=FALSE, message=F, warning=F, cache=T}
+model1 = stan(model_code=q1.stan_2, data=list(y=BDAdata$Fatalaccidents, n=nrow(BDAdata)), iter=1000, chains = 4) # default burn-in is iterations/2 
+```
+
+
+```{r, message=F, warning=F}
+par.m1 <- extract(model1,permuted = TRUE) 
+theta_samples <- par.m1$theta # extract from all 4 chains 
+hist(theta_samples, main="Posterior distribution of theta")
+```
+
+
+
+
+
+\newpage
+
+
+### Model 1. B
+
+
+
+
+- Assume that the numbers of fatal accidents in each year follow independent Poisson distributions with a constant rate and an exposure in each year proportional to the number of passenger miles flown. Set a prior distribution for $\theta$ and determine the posterior distribution based on the data for 1976–1985. 
+
+
+
+```{r, message=F, warning=F, echo=T}
+# p1_stan = "data {
+#   int<lower=0> N;
+#   int<lower=0> y[N];              // Y
+#   vector<lower=0>[N] V;           // exposure
+# }
+# 
+# parameters {
+#   real<lower =0> theta;
+# }
+# model {
+# 
+#   theta ~  gamma(0.001, 0.001);
+#   y ~ poisson(V*theta);
+#  
+# }
+# 
+# generated quantities {
+#   vector[N] eta =  V*theta;
+# }"
+
+
+p1_stan = "data {
+  int<lower=0> N;
+  int<lower=0> y[N];              // Y
+  vector<lower=0>[N] V;           // exposure
+}
+
+parameters {
+  real<lower =0> theta;
+}
+model {
+
+  theta ~  gamma(0.001, 0.001);
+  y ~ poisson(V*theta);
+ 
+}
+
+generated quantities {
+  vector[N] eta =  V*theta;
+   vector[N] log_lik;
+   for (i in 1:N) {
+    log_lik[i] = poisson_lpmf(y[i] | V[i]*theta);
+   }
+ 
+}"
+
+```
+
+
+```{r, echo = F, include=FALSE, message=F, warning=F}
+
+miles <- BDAdata$Passengerdeaths / BDAdata$Deathrate * 10^8
+exposure <- miles / 10^8
+
+# theta: fatal accidents per 10^8 miles 
+FArate <- BDAdata$Fatalaccidents * 10^8 / miles
+dat2= list(y=BDAdata$Fatalaccidents, N=nrow(BDAdata), V = exposure )
+
+model2 = stan(model_code=p1_stan, data=dat2, iter=1000, chains = 4) #
+par.m2 <- extract(model2,permuted = TRUE)
+theta_samples2 <- par.m2$theta # extract from all 4 chains 
+```
+
+```{r, echo = F, message=F, warning=F}
+hist(theta_samples2, main="Posterior distribution of theta")
+```
+
+
+
+
+
+
+\newpage 
+
+### Model 1. C
+
+
+
+- Repeat (a) above, replacing 'fatal accidents' with 'passenger deaths.'
+
+
+```{r, echo=T, include=FALSE, message=F, warning=F}
+model3 = stan(model_code=q1.stan_2, data=list(y=BDAdata$Passengerdeaths, n=nrow(BDAdata)), iter=1000, chains = 4) # default burn-in is iterations/2 
+```
+
+
+
+```{r , echo=F}
+
+par.m3 <- extract(model3,permuted = TRUE) 
+theta_samples3 <- par.m3$theta # extract from all 4 chains 
+hist(theta_samples3, main="Posterior distribution of theta")
+
+```
+
+
+\newpage
+
+### Model 1. D 
+
+- Repeat (b) above, replacing ‘fatal accidents’ with ‘passenger deaths.’
+
+```{r, echo = F, include=FALSE, message=F, warning=F}
+
+miles <- BDAdata$Passengerdeaths / BDAdata$Deathrate * 10^8
+exposure <- miles / 10^8
+
+# theta: fatal accidents per 10^8 miles 
+FArate <- BDAdata$Fatalaccidents * 10^8 / miles
+dat4= list(y=BDAdata$Passengerdeaths, N=nrow(BDAdata), V = exposure )
+
+model4 = stan(model_code=p1_stan, data=dat4, iter=1000, chains = 4) #
+```
+
+
+
+```{r, echo = F, message=F, warning=F}
+
+par.m4 <- extract(model4,permuted = TRUE)
+theta_samples4 <- par.m4$theta # extract from all 4 chains 
+hist(theta_samples4, main="Posterior distribution of theta")
+
+```
+
+
+
+\newpage 
+
+## Model Comparison
+
+
+
+```{r, echo=T}
+
+
+# log_lik1 <- extract_log_lik(m1,  parameter_name = c("log_lik"),
+#                               merge_chains = TRUE)
+# 
+# waic(log_lik1)
+
+Model_compare.func <- function(m1, m2){
+
+ ## Extracting the Likelihood
+  log_lik1 <- extract_log_lik(model1,  parameter_name = c("log_lik"),
+                              merge_chains = TRUE)
+  
+  log_lik2 <- extract_log_lik(model2,  parameter_name = c("log_lik"),
+                              merge_chains = TRUE)
+  
+  #Compute WAIC for model1 and model2
+  waic1  <-  loo::waic(log_lik1)
+  waic2  <- loo::waic(log_lik2)
+ comp.waic = compare(x = list(waic1, waic2))
+  
+ ##The model with lower WAIC is preferred
+  
+ waic.df = data.frame(Model1 = waic1$estimates[, 1], Model2 = waic2$estimates[, 1])
+
+  
+# Compute looic for model1 and model2
+ loo1 = loo(log_lik1)
+ loo2 = loo(log_lik2)
+ comp.loo = compare(x = list(loo1, loo2))
+
+ # The model with lower looic is preferred
+ 
+ 
+loo.df = data.frame(Model1 = loo1$estimates[, 1], Model2 = loo2$estimates[, 1])
+ 
+ return(list(w= waic.df , l = loo.df, cw= comp.waic, cl =  comp.waic ))
+ 
+ }
+```
+
+
+
+\newpage
+
+
+### Compairing Model 1.A and Model1.B
+
+```{r, warning=F, message=F}
+comp.A = Model_compare.func(m1 = model1, m2= model2)
+
+knitr::kable(comp.A$w,format = "latex", booktabs = T,col.names = c("Model 1.A", "Model 1.B"),
+             caption= "WAIC: Model 1.A vrs Model 1.B")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+
+knitr::kable(comp.A$cw,format = "latex", booktabs = T,
+             caption= "WAIC: Model 1.A vrs Model 1.B")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+
+knitr::kable(comp.A$l, format = "latex", booktabs = T, col.names = c("Model 1.A", "Model 1.B"),
+             caption= "LOO: Model 1.A vrs Model 1.B")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+
+knitr::kable(comp.A$cl, format = "latex", booktabs = T, 
+             caption= "LOO: Model 1.A vrs Model 1.B")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
+
+
+- Model 1.A is preffered to model 1.B.
+
+
+\newpage
+
+### Compairing Model 1.C and Model1.D
+
+
+
+```{r, warning=F, message=F}
+
+comp.B = Model_compare.func(m1 = model3, m2= model4)
+
+knitr::kable(comp.B$w, format = "latex", booktabs = T, col.names = c("Model 1.C", "Model 1.D"),
+             caption= "WAIC: Model 1.C vrs Model 1.D")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+
+knitr::kable(comp.B$cw, format = "latex", booktabs = T, 
+            caption= "WAIC: Model 1.C vrs Model 1.D")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+
+```
+
+
+
+```{r, warning=F, message=F}
+knitr::kable(comp.B$l, format = "latex", booktabs = T,col.names = c("Model 1.C", "Model 1.D"),
+             caption= "LOO: Model 1.C vrs Model 1.D")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+
+knitr::kable(comp.B$cl, format = "latex", booktabs = T,
+             caption= "LOO: Model 1.C vrs Model 1.D")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+
+```
+
+
+
+- Model 1.C is preffered to model 1.D.
+
+
+
+\newpage
+
+## Review (Model 2:  Poisson Regression)
+
+
+
+
+
+### Models
+
+- stan_flat
+
+- stan_HalfCauchy
+
+- stan_NormalDiffuse
+
+- stan_infoNormal
+
+```{r, echo=F}
+stan_flat ="
+data {
+    int<lower=0> N;            // Number of observations
+    vector[N] t;            // time data
+    int<lower=0> fatal_accidents[N]; // Observed fatal accidents
+}
+
+parameters {
+    real a;        // Intercept
+    real b;        // Slope
+}
+
+model {
+    vector[N] lambda;
+    for (i in 1:N) {
+        lambda[i] = a + b * t[i];
+    }
+    fatal_accidents ~ poisson(lambda);
+}
+
+generated quantities {
+   vector[N] lam = a + b * t;
+   vector[N] log_lik;
+   for (i in 1:N) {
+    log_lik[i] = poisson_lpmf(fatal_accidents[i] | lam[i]);
+   }
+ 
+}
+"
+
+stan_HalfCauchy="
+data {
+    int<lower=0> N;
+    vector[N] t;
+    int<lower=0> fatal_accidents[N];
+}
+
+parameters {
+    real<lower=0> a;
+    real b;
+}
+
+model {
+    vector[N] lambda;
+    a ~ cauchy(0, 10);
+    b ~ cauchy(0, 2.5);
+    for (i in 1:N) {
+        lambda[i] = a + b * t[i];
+    }
+    fatal_accidents ~ poisson(lambda);
+}
+
+generated quantities {
+   vector[N] lam = a + b * t;
+   vector[N] log_lik;
+   for (i in 1:N) {
+    log_lik[i] = poisson_lpmf(fatal_accidents[i] | lam[i]);
+   }
+ 
+}
+"
+
+stan_NormalDiffuse="
+data {
+    int<lower=0> N;
+    vector[N] t;
+    int<lower=0> fatal_accidents[N];
+}
+
+parameters {
+    real a;
+    real b;
+}
+
+model {
+    vector[N] lambda;
+    a ~ normal(0, 1000);
+    b ~ normal(0, 1000);
+    for (i in 1:N) {
+        lambda[i] = a + b * t[i];
+    }
+    fatal_accidents ~ poisson(lambda);
+}
+
+generated quantities {
+   vector[N] lam = a + b * t;
+   vector[N] log_lik;
+   for (i in 1:N) {
+    log_lik[i] = poisson_lpmf(fatal_accidents[i] | lam[i]);
+   }
+ 
+}
+"
+
+stan_infoNormal="
+data {
+    int<lower=0> N;
+    vector[N] t;
+    int<lower=0> fatal_accidents[N];
+}
+
+parameters {
+    real a;
+    real b;
+}
+
+model {
+    vector[N] lambda;
+    
+    // Informative priors
+    a ~ normal(30, 5);
+    b ~ normal(1, 1.5);
+    
+    for (i in 1:N) {
+        lambda[i] = a + b * t[i];
+    }
+    
+    fatal_accidents ~ poisson(lambda);
+}
+
+generated quantities {
+   vector[N] lam = a + b * t;
+   vector[N] log_lik;
+   for (i in 1:N) {
+    log_lik[i] = poisson_lpmf(fatal_accidents[i] | lam[i]);
+   }
+ 
+}
+"
+
+
+```
+
+
+```{r, echo=F, warning=FALSE, message=F}
+library(dplyr)
+library(ggplot2)
+library(MASS)
+library(DT)
+library(gridExtra)
+load("BDAdata.rda")
+set.seed(1234)
+BDAdata$t <- BDAdata$year - min(BDAdata$year)
+
+stan_data <- list(
+  N = length(BDAdata$t),
+  t = BDAdata$t,
+  fatal_accidents = BDAdata$Fatalaccidents
+)
+```
+
+
+
+
+- **Priors**
+
+-  flat:  
+-   noninformative: unbounded flat prior, diffuse prior\[N(0,1000)\]
+
+-   weaklyinformative: half Cauchy prior\[ a \sim Cauchy(0,10)\], \[b \sim Cauchy(0,2.5)\]
+
+-   informative: \[a\sim N(30,5)\], \[b \sim N(1,1.5)\]
+
+- Fit model with different priors:
+
+```{r, include=F, echo=F, cache=T, message= F, warning=F}
+fit_flat <- stan(model_code =  stan_flat, data = stan_data, chains = 4, iter = 2000)
+fit_HalfCauchy <- stan(model_code =  stan_HalfCauchy, data = stan_data, chains = 4, iter = 2000)
+fit_NormalDiffuse <- stan(model_code =  stan_NormalDiffuse, data = stan_data, chains = 4, iter = 2000)
+fit_infoNormal <- stan(model_code =  stan_infoNormal, data = stan_data, chains = 4, iter = 2000)
+```
+
+```{r, eval=F}
+fit_flat <- stan(model_code =  stan_flat, data = stan_data, chains = 4, iter = 2000)
+fit_HalfCauchy <- stan(model_code =  stan_HalfCauchy, data = stan_data, chains = 4, iter = 2000)
+fit_NormalDiffuse <- stan(model_code =  stan_NormalDiffuse, data = stan_data, chains = 4, iter = 2000)
+fit_infoNormal <- stan(model_code =  stan_infoNormal, data = stan_data, chains = 4, iter = 2000)
+```
+
+
+
+
+
+```{r, warning=FALSE, message=F}
+samples_flat <- extract(fit_flat, permuted = TRUE)
+samples_halfcauchy <- extract(fit_HalfCauchy, permuted = TRUE)
+samples_diffusenormal <- extract(fit_NormalDiffuse, permuted = TRUE)
+samples_infonormal <- extract(fit_infoNormal, permuted = TRUE)
+
+```
+
+
+
+
+\newpage 
+
+## Model Comparison (Model 2)
+
+
+
+
+
+```{r, echo=T}
+Model2_compare <- function(m1, m2, m3, m4){
+
+ ## Extracting the Likelihood
+  log_lik1 <- extract_log_lik(m1,  parameter_name = c("log_lik"),
+                              merge_chains = TRUE)
+  
+  log_lik2 <- extract_log_lik(m2,  parameter_name = c("log_lik"),
+                              merge_chains = TRUE)
+  
+   log_lik3 <- extract_log_lik(m3,  parameter_name = c("log_lik"),
+                              merge_chains = TRUE)
+   
+  log_lik4 <- extract_log_lik(m4,  parameter_name = c("log_lik"),
+                              merge_chains = TRUE)
+  #Compute WAIC for model1 and model2
+  waic1  <-  loo::waic(log_lik1)
+  waic2  <- loo::waic(log_lik2)
+  waic3  <- loo::waic(log_lik3)
+  waic4  <- loo::waic(log_lik4)
+
+  
+ 
+  
+waic.df = data.frame(Model1 = waic1$estimates[, 1], Model2 = waic2$estimates[, 1], 
+                     Model3 = waic3$estimates[, 1], Model4 = waic4$estimates[, 1])
+comp.waic = compare(x = list(waic1, waic2, waic3, waic4))
+##The model with lower WAIC is preferred
+
+ 
+# Compute looic for model1 and model2
+ loo1 = loo(log_lik1)
+ loo2 = loo(log_lik2)
+ loo3 = loo(log_lik3)
+ loo4 = loo(log_lik4)
+
+ # The model with lower looic is preferred
+ 
+ 
+loo.df = data.frame(Model1 = loo1$estimates[, 1], Model2 = loo2$estimates[, 1],
+                    Model3 = loo3$estimates[, 1], Model4 = loo4$estimates[, 1])
+
+comp.loo = compare(x = list(loo1, loo2, loo3, loo4))
+ return(list(w= waic.df , l = loo.df, cw= comp.waic,  cl = comp.loo ))
+ 
+ }
+```
+
+
+\newpage
+
+```{r , message =F,  warning=F}
+## fit_flat fit_HalfCauchy fit_NormalDiffuse fit_infoNormal
+comp.df = Model2_compare(m1 = fit_flat, m2= fit_HalfCauchy, m3 = fit_NormalDiffuse, m4 =fit_infoNormal)
+
+knitr::kable(comp.df$w,format = "latex", booktabs = T,
+             caption= "WAIC: Poisson Regression(m1 - m4 omparison )")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+
+
+knitr::kable(comp.df$cw,format = "latex", booktabs = T,
+             caption= "WAIC: Poisson Regression(m1 - m4 omparison )")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+
+ knitr::kable(comp.df$l,format = "latex", booktabs = T,
+             caption= "LOO: Poisson Regression(m1 - m4 Comparison)")%>%
+   kable_styling(position = "center", latex_options = "HOLD_position")
+ 
+ knitr::kable(comp.df$cl,format = "latex", booktabs = T,
+             caption= "LOO: Poisson Regression(m1 - m4 omparison )")%>%
+  kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
+
+
+
