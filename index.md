@@ -25,10 +25,9 @@ Our meetings are held every Wednesday at 5:00 PM in the Department of Statistics
 
 - **Week2:** Modelling for airline fatalities data. Jiwon used Poisson model with and without considering the passenger miles to model the airline fatalities data. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week2/BDAanalysis.Rmd). [Html](/meeting/week2/BDAanalysis.html).
 
-- **Week3:** Non-informative Prior. Kyle summarized the common non-informative priors and apply them on 2022 American birth data. He also provided the examples of prior in clinical trials. [Slide](/meeting/week3/Bayesian_Reading_Group_Intro.pdf)
+- **Week3:** Non-informative Prior. Kyle summarized the common non-informative priors and apply them on 2022 American birth data. He also provided the examples of prior in clinical trials. [Slide](/meeting/week3/UninformativePriorDistribution.pdf)
 
 
--   
 - **Week 5:**
   - Theory of Model Comparison Criterions: Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/model_comparison.Rmd). [Html](/meeting/week5/model_comparison.html)
   - Application: Eric showed how to calculate the model comparison criterions for Rstan Models. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/Model_comp.Rmd). [html](/meeting/week5/Model_comp.html)
