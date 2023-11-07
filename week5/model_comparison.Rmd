@@ -1,8 +1,7 @@
 ---
-title: "Model Comparison Criterions (BDA chapter 7)"
-output:
-  html_document:
-    df_print: paged
+layout: page
+title: Model Comparison Criterions
+permalink: /about/
 ---
 
 **1. Difference between model checking and model comparison**
