@@ -1,0 +1,198 @@
+---
+title: "BDAanalysis"
+author: "Jiwon Lee"
+date: "2023-09-15"
+output: html_document
+---
+
+```{r, message=FALSE}
+library("rstan") 
+library(dplyr)
+
+url_to_rda <- "https://github.com/ucincy-grad-bayesian-group/meeting/raw/main/week5/BDAdata.rda"
+# Open a connection to the URL
+con <- url(url_to_rda)
+# Load the .rda file into R
+load(con)
+# Close the connection
+close(con)
+
+```
+
+
+(a) Assume that the numbers of fatal accidents in each year are independent with a Poisson(θ) distribution. Set a prior distribution for θ and determine the posterior distribution based on the data from 1976 through 1985. Under this model, give a 95% predictive interval for the number of fatal accidents in 1986. You can use the normal approximation to the gamma and Poisson or compute using simulation.
+
+```{r echo = T, results = 'hide'}
+q1.stan_2 =
+  "
+data {
+  int n;               
+  int<lower=0> y[n];  // fatalaccidents
+}
+
+parameters {
+  real<lower=0> theta;
+}
+
+model {
+  theta ~ gamma(0.001, 0.001);        // shape, rate
+  y ~ poisson(theta);         // likelihood
+}
+"
+
+# fit: https://mc-stan.org/rstan/reference/stan.html
+fit = stan(model_code=q1.stan_2, data=list(y=BDAdata$Fatalaccidents, n=nrow(BDAdata)), iter=1000, chains = 4) # default burn-in is iterations/2 
+f <- rstan::extract(fit,permuted = TRUE) 
+theta_samples <- f$theta # extract from all 4 chains 
+hist(theta_samples, main="Posterior distribution of theta")
+```
+
+Set Gamma($\alpha,\beta$) to a prior then by its conjugate relationship, the posterior is Gamma($\alpha+\sum_{i=1}^n y_i,\ \beta+n$).  
+
+We get the exact predictive distribution using this
+\begin{align*}
+p(y'|y) &= \int p(y',\theta|y)\, d\theta\\
+&= \int p(y'|\theta,y)p(\theta|y)\, d\theta\\
+&= \int p(y'|\theta)p(\theta|y)\, d\theta
+\end{align*}
+
+This is the log of it for numerical reasons.
+```{r}
+
+p_ytilde <- function(ytilde, alpha.prime, beta.prime){
+  
+  exp(alpha.prime * log(beta.prime) + lfactorial(alpha.prime + ytilde -1 )
+      - lfactorial(ytilde) - lfactorial(alpha.prime - 1) - (alpha.prime + ytilde) * log(beta.prime + 1))
+  
+}
+```
+where alpha.prime$=\alpha + \sum_{i=1}^n y_i$ and beta.prime$=\beta+n$.
+
+```{r}
+alpha = 0.001
+beta = 0.001
+
+alpha.prime = alpha + sum(BDAdata$Fatalaccidents)
+beta.prime = beta + nrow(BDAdata)
+
+input = seq(10,50, by=1)
+output <- p_ytilde(input, alpha.prime, beta.prime)
+
+plot(input, output, type="h", xlab="Fatal accidents", ylab="Point mass", main="Posterior predictive distribution", lwd=8, col="grey")
+
+lines(rep(input[which.max(output)], 2), c(0, output[which.max(output)]), col="tomato", lwd=7)
+
+# 95 % interval
+sum(output[1:5]) # 0.02597901
+sum(output[1:25]) # 0.9755894
+
+abline(v = input[5])
+abline(v = input[25])
+text(37, 0.07, "95% predictive interval = (14, 34)")
+
+```
+
+(b) Assume that the numbers of fatal accidents in each year follow independent Poisson distributions with a constant rate and an exposure in each year proportional to the number of passenger miles flown. Set a prior distribution for θ and determine the posterior distribution based on the data for 1976–1985. (Estimate the number of passenger miles flown in each year by dividing the appropriate columns of Table 2.2 and ignoring round-off errors.) Give a 95% predictive interval for the number of fatal accidents in 1986 under the assumption that $8 \times 10^{11}$ passenger miles are flown that year.
+```{r}
+# passenger miles per year
+miles <- BDAdata$Passengerdeaths / BDAdata$Deathrate * 10^8
+exposure <- miles / 10^8
+
+# theta: fatal accidents per 10^8 miles 
+FArate <- BDAdata$Fatalaccidents * 10^8 / miles
+  posterior.samples <- rgamma(10^4, shape = alpha + sum(BDAdata$Fatalaccidents), rate = beta + sum(exposure))
+hist(posterior.samples)
+mean(posterior.samples)
+```
+
+Predictive distribution
+
+```{r}
+exposure_1986 <- 8 * 10^ 11 / 10^8
+# predictive 
+p_yhat <- function(yhat, alpha, beta){
+  
+  sumy <- sum(BDAdata$Fatalaccidents)
+  sumx <- sum(exposure)
+  
+  log_den <- yhat * log(exposure_1986) + (alpha + sumy) * log(beta + sumx) + lfactorial(alpha + sumy + yhat -1) - lfactorial(yhat) - lfactorial(alpha + sumy -1) - (alpha + sumy + yhat) * log(beta + sumx + exposure_1986)
+  
+  return(exp(log_den))
+}
+
+
+yhat <- seq(10,55,1)
+density <- p_yhat(yhat, 0.001, 0.001)
+
+plot(yhat, density, type="h", xlab="Future Fatal accidents", ylab="density", main="predictive distribution")
+
+yhat[which.max(density)]
+```
+
+True # of fatal accidents was 22 in 1986.   Following this predictive distribution, the mode is 33.  
+Why does this overestimate it?  
+One possible reason could be the assumption of exposure.  
+What if we change the exposure?  
+```{r}
+
+exposure_1986 <- 5 * 10^ 11 / 10^8  # much less than the original
+
+density <- p_yhat(yhat, 0.001, 0.001)
+
+plot(yhat, density, type="h", xlab="Future Fatal accidents", ylab="density", main="predictive distribution")
+
+yhat[which.max(density)] ## The result can be changed a lot depending on the exposure.
+
+```
+
+(c) Repeat (a) above, replacing ‘fatal accidents’ with ‘passenger deaths.’
+```{r}
+posterior.samples <- rgamma(10^4, shape = alpha + sum(BDAdata$Passengerdeaths), rate = beta + nrow(BDAdata))
+hist(posterior.samples)
+
+# predictive
+alpha.prime = alpha + sum(BDAdata$Passengerdeaths)
+beta.prime = beta + nrow(BDAdata)
+input = seq(400,800, by=1)
+output<- p_ytilde(input, alpha.prime, beta.prime)
+
+
+plot(input, output, type="h", xlim = c(600, 800), main = "Predictive distribution of Passenger Deaths")
+
+abline(v = input[which.max(output)], col ="red", lwd = 2)
+input[which.max(output)] # predictive mode
+```
+
+
+(d) Repeat (b) above, replacing ‘fatal accidents’ with ‘passenger deaths.’
+```{r}
+posterior.samples <- rgamma(10^4, shape = alpha + sum(BDAdata$Passengerdeaths), rate = beta + sum(exposure))
+hist(posterior.samples)
+mean(posterior.samples)
+
+exposure_1986 <- 8 * 10^ 11 / 10^8
+
+p_yhat <- function(yhat, alpha, beta){
+  
+  sumy <- sum(BDAdata$Passengerdeaths)
+  sumx <- sum(exposure)
+  
+  log_den <- yhat * log(exposure_1986) + (alpha + sumy) * log(beta + sumx) + lfactorial(alpha + sumy + yhat -1) - lfactorial(yhat) - lfactorial(alpha + sumy -1) - (alpha + sumy + yhat) * log(beta + sumx + exposure_1986)
+  
+  return(exp(log_den))
+}
+
+
+yhat <- seq(800,1100,1)
+density <- p_yhat(yhat, 0.001, 0.001)
+
+plot(yhat, density, type="h", xlab="Future Passenger Deaths", ylab="density", main="predictive distribution")
+
+yhat[which.max(density)]
+
+
+```
+
+
+
+
