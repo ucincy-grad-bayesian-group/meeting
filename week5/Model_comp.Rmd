@@ -2,29 +2,32 @@
 title: "Model Comparison"
 author: "-"
 date: "2023-10-13"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
-
-
 ## Review (Model 1 )
-
 
 ```{r, echo=F, message=F, warning=F}
 library("rstan") 
 library(dplyr)
-load("BDAdata.rda")
+# Replace the URL with the actual URL of the raw .rda file
+url_to_rda <- "https://github.com/ucincy-grad-bayesian-group/meeting/raw/main/week5/BDAdata.rda"
+# Open a connection to the URL
+con <- url(url_to_rda)
+# Load the .rda file into R
+load(con)
+# Close the connection
+close(con)
+
 library(rstan)
 library(loo)
 library(bayesplot)
 library(kableExtra)
 ```
 
-
-
-
-
-- **Model Setup**
+-   **Model Setup**
 
 $$
 \begin{aligned}
@@ -33,14 +36,11 @@ $$
 \end{aligned}
 $$
 
+-   **Posterior**
 
-- **Posterior**
+$$\theta|X   \sim  \text{Gamma}(\alpha+\sum_{i=1}^n y_i,\ \beta+n)$$
 
-$$\theta|X   \sim  \text{Gamma}(\alpha+\sum_{i=1}^n y_i,\ \beta+n)$$  
-
-
-
-- **Predictive Distribution**
+-   **Predictive Distribution**
 
 $$
 \begin{aligned}
@@ -48,13 +48,9 @@ p(y'|y) &= \int p(y',\theta|y)\, d\theta\\
 \end{aligned}
 $$
 
-
 ### Model 1. A
 
-- Suppose that the annual counts of fatal accidents in each year are independent Poisson distributions Poisson distribution with  parameter $\theta$.
-
-
-
+-   Suppose that the annual counts of fatal accidents in each year are independent Poisson distributions Poisson distribution with parameter $\theta$.
 
 ```{r, message=F, warning=F, echo=T}
 q1.stan_2 =
@@ -83,34 +79,21 @@ generated quantities {
 
 ```
 
-
-
 ```{r, echo=T, include=FALSE, message=F, warning=F, cache=T}
 model1 = stan(model_code=q1.stan_2, data=list(y=BDAdata$Fatalaccidents, n=nrow(BDAdata)), iter=1000, chains = 4) # default burn-in is iterations/2 
 ```
 
-
 ```{r, message=F, warning=F}
-par.m1 <- extract(model1,permuted = TRUE) 
+par.m1 <- rstan::extract(model1,permuted = TRUE) 
 theta_samples <- par.m1$theta # extract from all 4 chains 
 hist(theta_samples, main="Posterior distribution of theta")
 ```
 
-
-
-
-
 \newpage
-
 
 ### Model 1. B
 
-
-
-
-- Assume that the numbers of fatal accidents in each year follow independent Poisson distributions with a constant rate and an exposure in each year proportional to the number of passenger miles flown. Set a prior distribution for $\theta$ and determine the posterior distribution based on the data for 1976–1985. 
-
-
+-   Assume that the numbers of fatal accidents in each year follow independent Poisson distributions with a constant rate and an exposure in each year proportional to the number of passenger miles flown. Set a prior distribution for $\theta$ and determine the posterior distribution based on the data for 1976--1985.
 
 ```{r, message=F, warning=F, echo=T}
 # p1_stan = "data {
@@ -161,7 +144,6 @@ generated quantities {
 
 ```
 
-
 ```{r, echo = F, include=FALSE, message=F, warning=F}
 
 miles <- BDAdata$Passengerdeaths / BDAdata$Deathrate * 10^8
@@ -172,7 +154,7 @@ FArate <- BDAdata$Fatalaccidents * 10^8 / miles
 dat2= list(y=BDAdata$Fatalaccidents, N=nrow(BDAdata), V = exposure )
 
 model2 = stan(model_code=p1_stan, data=dat2, iter=1000, chains = 4) #
-par.m2 <- extract(model2,permuted = TRUE)
+par.m2 <- rstan::extract(model2,permuted = TRUE)
 theta_samples2 <- par.m2$theta # extract from all 4 chains 
 ```
 
@@ -180,40 +162,29 @@ theta_samples2 <- par.m2$theta # extract from all 4 chains
 hist(theta_samples2, main="Posterior distribution of theta")
 ```
 
-
-
-
-
-
-\newpage 
+\newpage
 
 ### Model 1. C
 
-
-
-- Repeat (a) above, replacing 'fatal accidents' with 'passenger deaths.'
-
+-   Repeat (a) above, replacing 'fatal accidents' with 'passenger deaths.'
 
 ```{r, echo=T, include=FALSE, message=F, warning=F}
 model3 = stan(model_code=q1.stan_2, data=list(y=BDAdata$Passengerdeaths, n=nrow(BDAdata)), iter=1000, chains = 4) # default burn-in is iterations/2 
 ```
 
-
-
 ```{r , echo=F}
 
-par.m3 <- extract(model3,permuted = TRUE) 
+par.m3 <- rstan::extract(model3,permuted = TRUE) 
 theta_samples3 <- par.m3$theta # extract from all 4 chains 
 hist(theta_samples3, main="Posterior distribution of theta")
 
 ```
 
-
 \newpage
 
-### Model 1. D 
+### Model 1. D
 
-- Repeat (b) above, replacing ‘fatal accidents’ with ‘passenger deaths.’
+-   Repeat (b) above, replacing 'fatal accidents' with 'passenger deaths.'
 
 ```{r, echo = F, include=FALSE, message=F, warning=F}
 
@@ -227,23 +198,17 @@ dat4= list(y=BDAdata$Passengerdeaths, N=nrow(BDAdata), V = exposure )
 model4 = stan(model_code=p1_stan, data=dat4, iter=1000, chains = 4) #
 ```
 
-
-
 ```{r, echo = F, message=F, warning=F}
 
-par.m4 <- extract(model4,permuted = TRUE)
+par.m4 <- rstan::extract(model4,permuted = TRUE)
 theta_samples4 <- par.m4$theta # extract from all 4 chains 
 hist(theta_samples4, main="Posterior distribution of theta")
 
 ```
 
-
-
-\newpage 
+\newpage
 
 ## Model Comparison
-
-
 
 ```{r, echo=T}
 
@@ -287,94 +252,76 @@ loo.df = data.frame(Model1 = loo1$estimates[, 1], Model2 = loo2$estimates[, 1])
  }
 ```
 
-
-
 \newpage
-
 
 ### Compairing Model 1.A and Model1.B
 
 ```{r, warning=F, message=F}
 comp.A = Model_compare.func(m1 = model1, m2= model2)
 
-knitr::kable(comp.A$w,format = "latex", booktabs = T,col.names = c("Model 1.A", "Model 1.B"),
+knitr::kable(comp.A$w,format = "html", booktabs = T,col.names = c("Model 1.A", "Model 1.B"),
              caption= "WAIC: Model 1.A vrs Model 1.B")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 
-knitr::kable(comp.A$cw,format = "latex", booktabs = T,
+knitr::kable(comp.A$cw,format = "html", booktabs = T,
              caption= "WAIC: Model 1.A vrs Model 1.B")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 
-knitr::kable(comp.A$l, format = "latex", booktabs = T, col.names = c("Model 1.A", "Model 1.B"),
+knitr::kable(comp.A$l, format = "html", booktabs = T, col.names = c("Model 1.A", "Model 1.B"),
              caption= "LOO: Model 1.A vrs Model 1.B")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 
-knitr::kable(comp.A$cl, format = "latex", booktabs = T, 
+knitr::kable(comp.A$cl, format = "html", booktabs = T, 
              caption= "LOO: Model 1.A vrs Model 1.B")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 ```
 
-
-
-- Model 1.A is preffered to model 1.B.
-
+-   Model 1.A is preffered to model 1.B.
 
 \newpage
 
 ### Compairing Model 1.C and Model1.D
 
-
-
 ```{r, warning=F, message=F}
 
 comp.B = Model_compare.func(m1 = model3, m2= model4)
 
-knitr::kable(comp.B$w, format = "latex", booktabs = T, col.names = c("Model 1.C", "Model 1.D"),
+knitr::kable(comp.B$w, format = "html", booktabs = T, col.names = c("Model 1.C", "Model 1.D"),
              caption= "WAIC: Model 1.C vrs Model 1.D")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 
-knitr::kable(comp.B$cw, format = "latex", booktabs = T, 
+knitr::kable(comp.B$cw, format = "html", booktabs = T, 
             caption= "WAIC: Model 1.C vrs Model 1.D")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 
 ```
 
-
-
 ```{r, warning=F, message=F}
-knitr::kable(comp.B$l, format = "latex", booktabs = T,col.names = c("Model 1.C", "Model 1.D"),
+knitr::kable(comp.B$l, format = "html", booktabs = T,col.names = c("Model 1.C", "Model 1.D"),
              caption= "LOO: Model 1.C vrs Model 1.D")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 
-knitr::kable(comp.B$cl, format = "latex", booktabs = T,
+knitr::kable(comp.B$cl, format = "html", booktabs = T,
              caption= "LOO: Model 1.C vrs Model 1.D")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 
 ```
 
-
-
-- Model 1.C is preffered to model 1.D.
-
-
+-   Model 1.C is preffered to model 1.D.
 
 \newpage
 
-## Review (Model 2:  Poisson Regression)
-
-
-
-
+## Review (Model 2: Poisson Regression)
 
 ### Models
 
-- stan_flat
+-   stan_flat
 
-- stan_HalfCauchy
+-   stan_HalfCauchy
 
-- stan_NormalDiffuse
+-   stan_NormalDiffuse
 
-- stan_infoNormal
+-   stan_infoNormal
 
 ```{r, echo=F}
 stan_flat ="
@@ -510,14 +457,13 @@ generated quantities {
 
 ```
 
-
 ```{r, echo=F, warning=FALSE, message=F}
 library(dplyr)
 library(ggplot2)
 library(MASS)
 library(DT)
 library(gridExtra)
-load("BDAdata.rda")
+
 set.seed(1234)
 BDAdata$t <- BDAdata$year - min(BDAdata$year)
 
@@ -528,19 +474,17 @@ stan_data <- list(
 )
 ```
 
+-   **Priors**
 
+-   flat:\
 
+-   noninformative: unbounded flat prior, diffuse prior$$N(0,1000)$$
 
-- **Priors**
+-   weaklyinformative: half Cauchy prior$$ a \sim Cauchy(0,10)$$, $$b \sim Cauchy(0,2.5)$$
 
--  flat:  
--   noninformative: unbounded flat prior, diffuse prior\[N(0,1000)\]
+-   informative: $$a\sim N(30,5)$$, $$b \sim N(1,1.5)$$
 
--   weaklyinformative: half Cauchy prior\[ a \sim Cauchy(0,10)\], \[b \sim Cauchy(0,2.5)\]
-
--   informative: \[a\sim N(30,5)\], \[b \sim N(1,1.5)\]
-
-- Fit model with different priors:
+-   Fit model with different priors:
 
 ```{r, include=F, echo=F, cache=T, message= F, warning=F}
 fit_flat <- stan(model_code =  stan_flat, data = stan_data, chains = 4, iter = 2000)
@@ -549,35 +493,18 @@ fit_NormalDiffuse <- stan(model_code =  stan_NormalDiffuse, data = stan_data, ch
 fit_infoNormal <- stan(model_code =  stan_infoNormal, data = stan_data, chains = 4, iter = 2000)
 ```
 
-```{r, eval=F}
-fit_flat <- stan(model_code =  stan_flat, data = stan_data, chains = 4, iter = 2000)
-fit_HalfCauchy <- stan(model_code =  stan_HalfCauchy, data = stan_data, chains = 4, iter = 2000)
-fit_NormalDiffuse <- stan(model_code =  stan_NormalDiffuse, data = stan_data, chains = 4, iter = 2000)
-fit_infoNormal <- stan(model_code =  stan_infoNormal, data = stan_data, chains = 4, iter = 2000)
-```
-
-
-
-
 
 ```{r, warning=FALSE, message=F}
-samples_flat <- extract(fit_flat, permuted = TRUE)
-samples_halfcauchy <- extract(fit_HalfCauchy, permuted = TRUE)
-samples_diffusenormal <- extract(fit_NormalDiffuse, permuted = TRUE)
-samples_infonormal <- extract(fit_infoNormal, permuted = TRUE)
+samples_flat <- rstan::extract(fit_flat, permuted = TRUE)
+samples_halfcauchy <- rstan::extract(fit_HalfCauchy, permuted = TRUE)
+samples_diffusenormal <- rstan::extract(fit_NormalDiffuse, permuted = TRUE)
+samples_infonormal <- rstan::extract(fit_infoNormal, permuted = TRUE)
 
 ```
 
-
-
-
-\newpage 
+\newpage
 
 ## Model Comparison (Model 2)
-
-
-
-
 
 ```{r, echo=T}
 Model2_compare <- function(m1, m2, m3, m4){
@@ -627,31 +554,26 @@ comp.loo = compare(x = list(loo1, loo2, loo3, loo4))
  }
 ```
 
-
 \newpage
 
 ```{r , message =F,  warning=F}
 ## fit_flat fit_HalfCauchy fit_NormalDiffuse fit_infoNormal
 comp.df = Model2_compare(m1 = fit_flat, m2= fit_HalfCauchy, m3 = fit_NormalDiffuse, m4 =fit_infoNormal)
 
-knitr::kable(comp.df$w,format = "latex", booktabs = T,
+knitr::kable(comp.df$w,format = "html", booktabs = T,
              caption= "WAIC: Poisson Regression(m1 - m4 omparison )")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 
 
-knitr::kable(comp.df$cw,format = "latex", booktabs = T,
+knitr::kable(comp.df$cw,format = "html", booktabs = T,
              caption= "WAIC: Poisson Regression(m1 - m4 omparison )")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 
- knitr::kable(comp.df$l,format = "latex", booktabs = T,
+ knitr::kable(comp.df$l,format = "html", booktabs = T,
              caption= "LOO: Poisson Regression(m1 - m4 Comparison)")%>%
    kable_styling(position = "center", latex_options = "HOLD_position")
  
- knitr::kable(comp.df$cl,format = "latex", booktabs = T,
+ knitr::kable(comp.df$cl,format = "html", booktabs = T,
              caption= "LOO: Poisson Regression(m1 - m4 omparison )")%>%
   kable_styling(position = "center", latex_options = "HOLD_position")
 ```
-
-
-
-
