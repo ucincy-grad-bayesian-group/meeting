@@ -110,7 +110,7 @@ model_model1 <- stan_model(model_code = stan_code_model1)
 
 fit_model1 <- sampling(model_model1, data = stan_data, chains = 4, iter = 2000)
 
-print(fit_model1)
+print(fit_model1, pars=c("mu","beta0","sigma"),include=T)
 
 ```
 
@@ -159,7 +159,7 @@ model_model2 <- stan_model(model_code = stan_code_model2)
 fit_model2 <- sampling(model_model2, data = stan_data_model2, chains = 4, iter = 2000)
 
 
-print(fit_model2)
+print(fit_model2, pars=c("mu","beta0","beta1","sigma"),include=T)
 ```
 ##Model 3
 ```{r, cache = TRUE}
@@ -210,7 +210,7 @@ model_model3 <- stan_model(model_code = stan_code_model3)
 
 fit_model3 <- sampling(model_model3, data = stan_data_model3, chains = 4, iter = 2000)
 
-print(fit_model3)
+print(fit_model3, pars=c("mu","beta0","beta1","beta2","sigma"),include=T)
 
 ```
 
