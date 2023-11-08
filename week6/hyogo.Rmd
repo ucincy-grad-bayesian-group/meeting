@@ -1,0 +1,428 @@
+---
+title: "Oct-27-BDA-Seminar"
+author: "Hyogo Shiiiii"
+output:
+  html_document:
+    df_print: paged
+---
+**0. Acknowlegement** 
+99.9% of my work is influenced by Yuan's advice. I appreciate all of his comments to do this.
+
+## Data Description
+
+```{r Load packages and data}
+library(dplyr)
+library(rstan)
+library(loo)
+library(bayesplot)
+library(kableExtra)
+options(mc.cores = parallel::detectCores()-1)
+
+dat <- read.table("https://drive.google.com/uc?export=download&id=1SY0vPf9TVz_jo7qtq6wuFuxmL3aqNUda",header=T)
+head(dat)
+dim(dat)
+```
+
+-   home: A binary variable indicating the venue of the game for the favorite team. If home is 1, then the favorite team played at their home stadium. If home is 0, then they played away.
+
+-   favorite: The number of points scored by the team that was favored to win (according to pre-game odds or expert predictions).
+
+-   underdog: The number of points scored by the team that was expected to lose or was not the favored team.
+
+-   spread: The point spread set by bookmakers. This is an estimate of the expected point difference between the favorite and the underdog.
+
+-   favorite.name: The name (or abbreviation) of the team that was favored to win.
+
+-   underdog.name: The name (or abbreviation) of the team that was the underdog.
+
+-   week: The week of the football season in which the game took place.
+
+
+
+##Split the data into training data and test data
+```{r Lets split}
+# Set the random seed for reproducibility
+set.seed(123)
+
+# Generate a random sample of 2000 indices for the training data
+ind <- sample(1:2240, 2000)
+
+# Create the training dataset by selecting rows based on the random indices
+train_data <- dat[ind,]
+
+# Create the test dataset by excluding the rows used for training
+test_data <- dat[-ind,]
+```
+
+
+## Visualization of data
+```{r explore data}
+
+Tscore_difference <- train_data$favorite - train_data$underdog
+Tspread <- train_data$spread
+
+boxplot(Tscore_difference~train_data$home)
+plot(train_data$spread,Tscore_difference)
+plot(train_data$spread,Tscore_difference-Tspread)
+plot(train_data$week,Tscore_difference)
+```
+
+##Model 1
+```{r, cache = TRUE}
+
+stan_data <- list(
+  n = length(Tscore_difference),
+  y = Tscore_difference,
+  Tspread = Tspread
+)
+
+stan_code_model1 <- "
+data {
+  int<lower=0> n;
+  vector[n] y;
+  vector[n] Tspread;
+}
+
+parameters {
+  real mu;
+  real beta0;
+  real<lower=0> sigma;
+}
+
+model {
+  mu ~ normal(0, 10);
+  beta0 ~ normal(0, 10);
+  sigma ~ normal(0, 10);
+
+  y ~ normal(mu + beta0 * Tspread, sigma);
+}
+generated quantities {
+  vector[n] log_lik;
+
+  for (i in 1:n) {
+    log_lik[i] = normal_lpdf(y[i] | Tspread[i] * beta0 + mu, sigma);
+  }
+}
+
+"
+
+model_model1 <- stan_model(model_code = stan_code_model1)
+
+fit_model1 <- sampling(model_model1, data = stan_data, chains = 4, iter = 2000)
+
+print(fit_model1)
+
+```
+
+##Model 2
+```{r, cache = TRUE}
+stan_data_model2 <- list(
+  n = length(Tscore_difference),
+  y = Tscore_difference,
+  Tspread = Tspread,
+  Thome = train_data$home  
+)
+
+stan_code_model2 <- "
+data {
+  int<lower=0> n;
+  vector[n] y;
+  vector[n] Tspread;
+  vector[n] Thome;
+}
+
+parameters {
+  real mu;
+  real beta0;
+  real beta1;  // New parameter for the home variable
+  real<lower=0> sigma;
+}
+
+model {
+  mu ~ normal(0, 10);
+  beta0 ~ normal(0, 10);
+  beta1 ~ normal(0, 10);
+  sigma ~ normal(0, 10);
+  y ~ normal(mu + beta0 * Tspread+ beta1 * Thome, sigma);
+}
+generated quantities {
+  vector[n] log_lik;
+
+  for (i in 1:n) {
+    log_lik[i] = normal_lpdf(y[i] | Tspread[i] * beta0+Thome[i]*beta1 + mu, sigma);
+  }
+}
+"
+model_model2 <- stan_model(model_code = stan_code_model2)
+
+
+fit_model2 <- sampling(model_model2, data = stan_data_model2, chains = 4, iter = 2000)
+
+
+print(fit_model2)
+```
+##Model 3
+```{r, cache = TRUE}
+stan_data_model3 <- list(
+  n = length(Tscore_difference),
+  y = Tscore_difference,
+  Tspread = Tspread,
+  Thome = train_data$home,
+  Tweek = train_data$week  
+)
+
+stan_code_model3 <- "
+data {
+  int<lower=0> n;
+  vector[n] y;
+  vector[n] Tspread;
+  vector[n] Thome;
+  vector[n] Tweek;  // Include the week variable
+}
+
+parameters {
+  real mu;
+  real beta0;
+  real beta1;
+  real beta2;  
+  real<lower=0> sigma;
+}
+
+model {
+  mu ~ normal(0, 10);
+  beta0 ~ normal(0, 10);
+  beta1 ~ normal(0, 10);
+   beta2 ~ normal(0, 10);
+  sigma ~ normal(0, 10);
+  y ~ normal(mu + beta0 * Tspread + beta1 * Thome+beta2*Tweek, sigma);
+}
+generated quantities {
+  vector[n] log_lik;
+
+  for (i in 1:n) {
+    log_lik[i] = normal_lpdf(y[i] | Tspread[i] * beta0+Thome[i]*beta1 +Tweek[i]*beta2 + mu, sigma);
+  }
+}
+
+"
+
+model_model3 <- stan_model(model_code = stan_code_model3)
+
+fit_model3 <- sampling(model_model3, data = stan_data_model3, chains = 4, iter = 2000)
+
+print(fit_model3)
+
+```
+
+##Model Comparison: The Case Where Model 1 2, and 3 Are Compared
+Below we are going to compare Models 1, 2 and 3 using WAICC and LOOIC and see which is the best.
+
+
+```{r}
+# Calculate log-likelihood for Models 1, 2 and 3
+log_lik_model1 <- extract_log_lik(fit_model1)
+log_lik_model2 <- extract_log_lik(fit_model2)
+log_lik_model3 <- extract_log_lik(fit_model3)
+
+# Calculate WAIC for Models 1, 2 and 3
+waic_model1 <- waic(log_lik_model1)
+waic_model2 <- waic(log_lik_model2)
+waic_model3 <- waic(log_lik_model3)
+
+# Compare WAIC values
+waic_comparison <- loo_compare(list(waic_model1, waic_model2, waic_model3))
+
+# Calculate LOOIC for Models 1, 2 and 3
+loo_model1 <- loo(log_lik_model1)
+loo_model2 <- loo(log_lik_model2)
+loo_model3 <- loo(log_lik_model3)
+
+# Compare LOOIC values
+loo_comparison <- loo_compare(list(loo_model1, loo_model2, loo_model3))
+
+# Access the WAIC and LOOIC comparisons
+print(waic_comparison)
+print(loo_comparison)
+```
+
+
+
+```{r}
+# Extract parameter samples from Model 1
+samples_model1 <- rstan::extract(fit_model1)
+
+# Initialize a matrix to store predicted values for Model 1
+predicted_y_model1 <- matrix(NA, nrow = nrow(test_data), ncol = length(samples_model1$lp__))
+
+# Loop over each sample to generate predictions for Model 1
+for (i in 1:length(samples_model1$lp__)) {
+  # Generate noise (random values) based on the standard deviation (sigma) from the samples
+  noise <- rnorm(n = nrow(test_data), mean = 0, sd = samples_model1$sigma[i])
+
+  # Calculate predictions for Model 1 for each sample
+  predicted_y_model1[, i] <- samples_model1$mu[i] + samples_model1$beta0[i] * test_data$spread + noise
+}
+
+# Calculate the mean prediction for each data point for Model 1
+mean_prediction_model1 <- apply(predicted_y_model1, 1, mean)
+
+# Calculate the Mean Squared Error (MSE) for Model 1
+mse_model1 <- rowMeans((test_data$favorite-test_data$underdog - predicted_y_model1)^2)
+
+# Calculate the average MSE for Model 1 across samples
+average_mse_model1 <- mean(mse_model1)
+print(average_mse_model1)
+
+
+```
+
+
+```{r}
+# Extract parameter samples from Model 2
+samples_model2 <- rstan::extract(fit_model2)
+
+# Initialize a matrix to store predicted values for Model 2
+predicted_y_model2 <- matrix(NA, nrow = nrow(test_data), ncol = length(samples_model2$lp__))
+
+# Loop over each sample to generate predictions for Model 2
+for (i in 1:length(samples_model2$lp__)) {
+  # Generate noise (random values) based on the standard deviation (sigma) from the samples
+  noise <- rnorm(n = nrow(test_data), mean = 0, sd = samples_model2$sigma[i])
+
+  # Calculate predictions for Model 2 for each sample
+  predicted_y_model2[, i] <- samples_model2$mu[i] + samples_model2$beta0[i] * test_data$spread + noise
+}
+
+# Calculate the mean prediction for each data point for Model 2
+mean_prediction_model2 <- apply(predicted_y_model2, 1, mean)
+
+# Calculate the Mean Squared Error (MSE) for Model 2
+mse_model2 <- rowMeans(((test_data$favorite-test_data$underdog) - predicted_y_model2)^2)
+
+# Calculate the average MSE for Model 2 across samples
+average_mse_model2 <- mean(mse_model2)
+print(average_mse_model2)
+
+```
+
+##Test with test data.
+```{r}
+# Extract parameter samples from Model 1
+samples_model1 <- rstan::extract(fit_model1)
+
+# Initialize a matrix to store predicted values for Model 1
+predicted_y_model1 <- matrix(NA, nrow = nrow(test_data), ncol = length(samples_model1$lp__))
+
+# Initialize variables to store results
+mse_model1_values <- numeric()
+coverage_model1_values <- numeric()
+
+# Loop over each sample to generate predictions for Model 1
+for (i in 1:length(samples_model1$lp__)) {
+  # Generate noise (random values) based on the standard deviation (sigma) from the samples
+  noise <- rnorm(n = nrow(test_data), mean = 0, sd = samples_model1$sigma[i])
+
+  # Calculate predictions for Model 1 for each sample
+  predicted_y_model1[, i] <- samples_model1$mu[i] + samples_model1$beta0[i] * test_data$spread + noise
+}
+
+# Calculate the mean prediction for each data point for Model 1
+mean_prediction_model1 <- rowMeans(predicted_y_model1)
+
+# Calculate the Mean Squared Error (MSE) for Model 1
+mse_model1 <- mean((test_data$favorite - test_data$underdog - mean_prediction_model1)^2)
+
+# Calculate the average MSE for Model 1 across samples
+average_mse_model1 <- mean(mse_model1)
+
+# Check prediction interval coverage for each sample
+for (i in 1:nrow(test_data)) {
+  actual_score_difference <- test_data$favorite[i] - test_data$underdog[i]
+  lower_quantile_model1 <- quantile(predicted_y_model1[i, ], 0.025)
+  upper_quantile_model1 <- quantile(predicted_y_model1[i, ], 0.975)
+  
+  coverage_model1 <- (actual_score_difference >= lower_quantile_model1) & (actual_score_difference <= upper_quantile_model1)
+  coverage_model1_values <- c(coverage_model1_values, coverage_model1)
+}
+
+# Calculate the average prediction interval coverage for Model 1
+average_coverage_model1 <- mean(coverage_model1_values)
+
+# Print the results for Model 1
+cat("Average MSE for Model 1: ", average_mse_model1, "\n")
+cat("Average Prediction Interval Coverage for Model 1: ", average_coverage_model1, "\n")
+
+```
+
+##Copy of the above but for Model 2
+```{r}
+# Extract parameter samples from Model 2
+samples_model2 <- rstan::extract(fit_model2)
+
+# Initialize a matrix to store predicted values for Model 2
+predicted_y_model2 <- matrix(NA, nrow = nrow(test_data), ncol = length(samples_model2$lp__))
+
+# Initialize variables to store results for Model 2
+mse_model2_values <- numeric()
+coverage_model2_values <- numeric()
+
+# Loop over each sample to generate predictions for Model 2
+for (i in 1:length(samples_model2$lp__)) {
+  # Generate noise (random values) based on the standard deviation (sigma) from the samples
+  noise <- rnorm(n = nrow(test_data), mean = 0, sd = samples_model2$sigma[i])
+
+  # Calculate predictions for Model 2 for each sample
+  predicted_y_model2[, i] <- samples_model2$mu[i] + samples_model2$beta0[i] * test_data$spread + samples_model2$beta1[i] * test_data$home + noise
+}
+
+# Calculate the mean prediction for each data point for Model 2
+mean_prediction_model2 <- rowMeans(predicted_y_model2)
+
+# Calculate the Mean Squared Error (MSE) for Model 2
+mse_model2 <- mean((test_data$favorite - test_data$underdog - mean_prediction_model2)^2)
+
+# Calculate the average MSE for Model 2 across samples
+average_mse_model2 <- mean(mse_model2)
+
+# Check prediction interval coverage for each sample in Model 2
+for (i in 1:nrow(test_data)) {
+  lower_quantile_model2 <- quantile(predicted_y_model2[i, ], 0.025)
+  upper_quantile_model2 <- quantile(predicted_y_model2[i, ], 0.975)
+
+  coverage_model2 <- (test_data$favorite[i] - test_data$underdog[i] >= lower_quantile_model2) & (test_data$favorite[i] - test_data$underdog[i] <= upper_quantile_model2)
+  coverage_model2_values <- c(coverage_model2_values, coverage_model2)
+}
+
+# Calculate the average prediction interval coverage for Model 2
+average_coverage_model2 <- mean(coverage_model2_values)
+
+# Print the results for Model 2
+cat("Average MSE for Model 2: ", average_mse_model2, "\n")
+cat("Average Prediction Interval Coverage for Model 2: ", average_coverage_model2, "\n")
+```
+
+
+##Horizontal 
+```{r}
+y_estimate_model1 <- apply(predicted_y_model1,1,mean)
+y_estimate_model1 <- rowMeans(predicted_y_model1)
+plot(y_estimate_model1 , true_outcome)
+abline(0,1)
+
+```
+
+
+##Gambling Suggested By Yuan
+```{r}
+prob_estimate_model2 <- apply(predicted_y_model2,1,function(x) mean(x>0))
+true_outcome <- test_data$favorite-test_data$underdog
+win <- 1
+loseORtie <- 3
+strategy <- as.numeric(prob_estimate_model2 > loseORtie/(loseORtie+win))
+income_vec <- ifelse(true_outcome[strategy==1]>0, 1, -3)
+sum(income_vec)
+```
+
+
+
+
