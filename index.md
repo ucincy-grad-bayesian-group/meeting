@@ -36,7 +36,8 @@ Our meetings are held every Wednesday at 5:00 PM in the Department of Statistics
   - Theory of Model Comparison Criterions: Yuan explained some widely used bayesian model comparison criterions such as DIC, WAIC and LOOIC. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/model_comparison.Rmd). [Html](/meeting/week5/model_comparison.html)
   - Application: Eric showed how to calculate the model comparison criterions for Rstan Models. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/Model_comp.Rmd). [html](/meeting/week5/Model_comp.html)
 
-
+- **Week 7:** Model selection for football data. Hyogo compared different models and evaluate the model's performance on test data. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week6/Oct-27-BDA-Contents.Rmd). [Html](/meeting/week6/Oct-27-BDA-Contents.html)
+  
 ## Join Us
 If you're a UC grad student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:stats-group@uc.edu) for more information.
 
