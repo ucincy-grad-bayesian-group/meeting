@@ -43,7 +43,6 @@ Our meetings are held every Friday at 4:00 PM in the Department of Mathematical 
 - **Week 8:** Modelling checking for logistic regression model using schoold district statement data as an example. Yuan presented a method using binned residual to check bayesian logistic regression model and he analyzed the school district statement data.
   
 ## Join Us
-If you're a UC grad student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:stats-group@uc.edu) for more information.
+If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
 
-## Contact
-For more information, please email us at [stats-group@uc.edu](mailto:stats-group@uc.edu).
+
