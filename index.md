@@ -6,10 +6,10 @@ title: UCincy Grad Bayesian Analysis Group
 # Welcome to the UCincy Grad Bayesian Analysis Group
 
 ## About Us
-We are a group of graduate statistics students at the University of Cincinnati dedicated to exploring advanced topics in Bayesian statistics. Our group meets weekly to discuss recent papers, share research findings, and work through challenging statistical problems together.
+We are a group of graduate statistics students at the University of Cincinnati with a strong focus on applying Bayesian statistics to real, intricate data. Our weekly meetings include discussions on both textbooks and practical data analysis, allowing us to explore advanced topics in Bayesian statistics.
 
 ## Meetings
-Our meetings are held every Wednesday at 5:00 PM in the Department of Statistics (Room 301). Each week, we tackle a new topic in Bayesian statistics, ranging from theoretical concepts to practical applications.
+Our meetings are held every Friday at 4:00 PM in the Department of Mathematical Sciences (French Hall 4119). 
 
 ## This Week's Topic
 - **Week 9: Bayesian Hierarchical Model**. Bayesian hierarchical models enable the analysis of data with nested structures by allowing individual observations to be informed by group-level parameters. This approach incorporates prior knowledge and assesses uncertainty through probability distributions. It's a flexible statistical method that captures both within-group variability and between-group differences.
