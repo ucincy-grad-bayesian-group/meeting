@@ -42,7 +42,11 @@ Our meetings take place every Friday at 4:00 PM French Hall 4119. For those who 
 - **Week 7:** "Model Selection for Football Data." Hyogo conducted a comparative analysis of different models, evaluating their performance on test data specific to football. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week7/Oct-27-BDA-Contents.Rmd). [Html](/meeting/week7/Oct-27-BDA-Contents.html)
 
 - **Week 8:**  "Model Checking for Logistic Regression Using School District Statement Data." Yuan introduced a method utilizing binned residuals for assessing Bayesian logistic regression models, applying this technique to analyze school district statement data.
-  
+
+
+- **Week 9:** "Introduction to Bayesian Hierarchical Model". Kyle Mann talked about the concept and structure of Bayesian hierarchical modeling, and Bayesian information borrowing in clinical trials. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week7/Oct-27-BDA-Contents.Rmd). [Html](/meeting/week7/Oct-27-BDA-Contents.html)
+
+
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
 
