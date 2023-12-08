@@ -45,7 +45,7 @@ Winter Break. Will return in 2024 Jan.
 
 - **Week 9:** "Introduction to Bayesian Hierarchical Model". Kyle Mann talked about the concept and structure of Bayesian hierarchical modeling, and Bayesian information borrowing in clinical trials. [pdf](/meeting/week9/BayesianHierarchicalPresentation.pdf)
 
-- **Week 10:** "A hierarchical model example from BDA- 8 school example". Yuan Zhou discussed the arguments the author proposed for using a hierarchical model in this example and the connection between it and James-Stein Estimator. [Html](/meeting/week7/Oct-27-BDA-Contents.html)
+- **Week 10:** "A hierarchical model example from BDA- 8 school example". Yuan Zhou discussed the arguments the author proposed for using a hierarchical model in this example and the connection between it and James-Stein Estimator. [R Markdown](/meeting/main/week10/8 school.Rmd). [Html](/meeting/week10/8-school.html)
 
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
