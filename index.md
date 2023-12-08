@@ -13,7 +13,7 @@ We are a group of graduate statistics students at the University of Cincinnati w
 Our meetings take place every Friday at 4:00 PM French Hall 4119. For those who cannot attend in person, you are welcome to join us online via Zoom using the link: [Link](https://ucincinnati.zoom.us/j/6617187079).
 
 ## This Week's Topic
-- **Week 9: Bayesian Hierarchical Model**. Bayesian hierarchical models enable the analysis of data with nested structures by allowing individual observations to be informed by group-level parameters. This approach incorporates prior knowledge and assesses uncertainty through probability distributions. It's a flexible statistical method that captures both within-group variability and between-group differences.
+Winter Break. Will return in 2024 Jan.
   
 
 
@@ -43,9 +43,9 @@ Our meetings take place every Friday at 4:00 PM French Hall 4119. For those who 
 
 - **Week 8:**  "Model Checking for Logistic Regression Using School District Statement Data." Yuan introduced a method utilizing binned residuals for assessing Bayesian logistic regression models, applying this technique to analyze school district statement data.
 
+- **Week 9:** "Introduction to Bayesian Hierarchical Model". Kyle Mann talked about the concept and structure of Bayesian hierarchical modeling, and Bayesian information borrowing in clinical trials. [pdf](/meeting/week9/BayesianHierarchicalPresentation.pdf)
 
-- **Week 9:** "Introduction to Bayesian Hierarchical Model". Kyle Mann talked about the concept and structure of Bayesian hierarchical modeling, and Bayesian information borrowing in clinical trials. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week7/Oct-27-BDA-Contents.Rmd). [Html](/meeting/week7/Oct-27-BDA-Contents.html)
-
+- **Week 10:** "A hierarchical model example from BDA- 8 school example". Yuan Zhou discussed the arguments the author proposed for using a hierarchical model in this example and the connection between it and James-Stein Estimator. [Html](/meeting/week7/Oct-27-BDA-Contents.html)
 
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
