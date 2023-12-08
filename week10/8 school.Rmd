@@ -1,0 +1,200 @@
+---
+title: '8 School Example '
+output:
+  html_document:
+    df_print: paged
+---
+
+# 1. Problem Setup
+
+A study was performed for the Educational Testing Service to analyze the effects of special coaching programs on test scores. Separate randomized experiments were performed to estimate the effects of coaching programs for the SAT-V (Scholastic Aptitude Test-Verbal) in each of eight high schools. The results of the experiments are summarized in Table below. $y_j$ is the mean SAT score improvement in the treatment group minus the one in the control group in school $j$. $\sigma_j$ is the standard error of $y_j$.
+
+$$
+\begin{array}{ccc}
+\text { School } & \begin{array}{c}
+\text { Estimated } \\
+\text { treatment } \\
+\text { effect, } y_j
+\end{array} & \begin{array}{c}
+\text { Standard error } \\
+\text { of effect } \\
+\text { estimate, } \sigma_j
+\end{array} \\
+\hline \text { A } & 28 & 15 \\
+\text { B } & 8 & 10 \\
+\text { C } & -3 & 16 \\
+\text { D } & 7 & 11 \\
+\text { E } & -1 & 9 \\
+\text { F } & 1 & 11 \\
+\text { G } & 18 & 10 \\
+\text { H } & 12 & 18
+\end{array}
+$$
+
+# 2. Pooled and Separate Estimate
+
+## 2.1 Separate Estimate
+
+Let $\theta_j$ be the average improvement in the SAT score in school j.
+
+$$
+y_j = \theta_j + \varepsilon_j; \varepsilon_j\sim N(0, \sigma^2_j)
+$$
+
+Then $\hat{\theta}_j=y_j$, and $var(\hat{\theta}_j) = \sigma^2_j$, the 95% CI for $\theta_j$ is $(y_j-2*\sigma_j,y_j+2*\sigma_j)$
+
+The general overlap in the posterior intervals based on independent analyses that all experiments might be estimating the same quantity.
+
+## 2.2 Pooled Estimate
+
+$$
+y_j = \theta + \varepsilon_j; \varepsilon_j\sim N(0, \sigma^2_j)
+$$ Then $\hat{\theta}= \frac{\sum_{i=1}^8 \frac{y_i}{\sigma^2_i}}{\sum_{i=1}^8 \frac{1}{\sigma^2_i}}$, and $var(\hat{\theta}) = \frac{1}{\sum_{i=1}^8 \frac{1}{\sigma^2_i}}$, the 95% CI for $\theta$ is $(\hat{\theta}-2*\sqrt{\frac{1}{\sum_{i=1}^8 \frac{1}{\sigma^2_i}}},\hat{\theta}+2*\sqrt{\frac{1}{\sum_{i=1}^8 \frac{1}{\sigma^2_i}}})$
+
+```{r include=FALSE}
+# Load the ggplot2 library
+library(ggplot2)
+
+y <- c(28, 8, -3, 7, -1, 1, 18, 12)
+sigma <- c(15, 10, 16, 11, 9, 11, 10, 18)
+
+mu_est <- sum(y/sigma^2)/sum(1/sigma^2)
+sigma_est <- sqrt(1/sum(1/sigma^2))
+
+# Create a data frame with the treatment effect estimates and standard errors
+data <- data.frame(
+  Group = c('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'Pooled'),
+  Estimate = c(28, 8, -3, 7, -1, 1, 18, 12, mu_est),
+  StdError = c(15, 10, 16, 11, 9, 11, 10, 18, sigma_est)
+)
+
+# Plot the estimates with error bars
+ggplot(data, aes(x = Group, y = Estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = Estimate - 2*StdError, ymax = Estimate + 2*StdError), width = 0.2) +
+  theme_minimal() +
+  ggtitle("Treatment Effect Estimates with Error Bars") +
+  xlab("Group") +
+  ylab("Estimate")
+
+
+ 
+```
+
+## 3. Conventional Approach
+
+Use Pooled or Separate Estimate?
+
+1.  Test the hypothesis $H_0:\theta_1=\cdots=\theta_8$, if we cannot reject this hypothesis, we use pooled estimate, otherwise we use separate estimate.
+
+2.  Assume $\theta_j \sim N(0, \tau^2)$, we can estimate $\tau,\theta_j$ from the model:
+
+$$
+Y_{jk} = \theta_j + \varepsilon_{jk}
+$$
+
+In this case $\tau$ is estimated to be negative, so we just use $\tau=0$
+
+# 4. Problems with all approaches above
+
+## 4.1 Separate Estimate:
+
+Estimate for school A: 28 (sd=15), which suggests that the probability of true treatment effect in school A greater than 28 is 1/2, which is doubtful when considering other schools
+
+When true treatment effect is 8, with a sd of 15, it is not super impossible to observe a number as large as 28.
+
+## 4.2 Pooled Estimate:
+
+Estimate for school A(and for all): 7.7 (sd=4.1), which suggests that the probability of true treatment effect in school A less than 7.7 is 1/2, and the treatment in school A equals that in school C, which seems an inaccurate summary of our knowledge.
+
+## 4.3 Testing $H_0:\theta_1=\cdots=\theta_8$:
+
+Not rejecting the hypothesis does not imply $H_0$ is correct.
+
+## 4.4 Assuming $\theta_j \sim N(0,\tau^2)$, and estimate $\tau$
+
+Recap:
+
+$$
+y_{jk} = \theta_j + \varepsilon_{jk}; \theta_j \sim N(\mu,\tau^2), \varepsilon_{jk} \sim N(0,\sigma^2)
+$$
+
+When $\tau = 0$, $\hat{\theta}_j=\hat{\mu}=\bar{y}_{..}$ (Pooled);
+
+When $\tau = +\infty$, $\hat{\theta}_j=\bar{y}_{j.} (Separate)$
+
+When $0 <\tau < +\infty$,
+
+$$
+\hat{\theta}_j=\lambda_j \bar{y}_{. j}+\left(1-\lambda_j\right) \bar{y}_{. .}
+$$
+
+Point estimate ignores the uncertainty.
+
+![Posterior $p(\tau\mid y)$](https://github.com/ucincy-grad-bayesian-group/meeting/blob/main/week9/image.png?raw=true)
+
+![$E(\theta_j\mid \tau, y)$](https://github.com/ucincy-grad-bayesian-group/meeting/blob/main/week9/image1.png?raw=true)
+
+For example, there is a 51% chance $\theta_A=\theta_C$, 40% chance $\theta_A>\theta_C$, 9 % that $\theta_A<\theta_C$. Assuming $theta_A=\theta_C$ is not reasonable (mle), when we know $\theta_A$ more likely to be greater or equal than $\theta_C$
+
+## 5. Bayesian Hierarchical Model
+
+$$
+p\left(\theta_1, \ldots, \theta_J \mid \mu, \tau\right)=\prod_{j=1}^J \mathrm{~N}\left(\theta_j \mid \mu, \tau^2\right)
+$$
+
+$$
+\begin{aligned}
+p(\theta, \mu, \tau \mid y) & \propto p(\mu, \tau) p(\theta \mid \mu, \tau) p(y \mid \theta) \\
+& \propto p(\mu, \tau) \prod_{j=1}^J \mathrm{~N}\left(\theta_j \mid \mu, \tau^2\right) \prod_{j=1}^J \mathrm{~N}\left(y_{j} \mid \theta_j, \sigma_j^2\right)
+\end{aligned}
+$$
+
+Results:
+
+| School | Posterior quantiles |         |        |         |           |
+|:------:|--------------------:|--------:|-------:|--------:|:---------:|
+|        |            $2.5 \%$ | $25 \%$ | median | $75 \%$ | $97.5 \%$ |
+|   A    |                  -2 |       7 |     10 |      16 |    31     |
+|   B    |                  -5 |       3 |      8 |      12 |    23     |
+|   C    |                 -11 |       2 |      7 |      11 |    19     |
+|   D    |                  -7 |       4 |      8 |      11 |    21     |
+|   E    |                  -9 |       1 |      5 |      10 |    18     |
+|   F    |                  -7 |       2 |      6 |      10 |    28     |
+|   G    |                  -1 |       7 |     10 |      15 |    26     |
+|   H    |                  -6 |       3 |      8 |      13 |    33     |
+
+Original estimate:
+
+$$
+\begin{array}{ccc}
+\text { School } & \begin{array}{c}
+\text { Estimated } \\
+\text { treatment } \\
+\text { effect, } y_j
+\end{array} & \begin{array}{c}
+\text { Standard error } \\
+\text { of effect } \\
+\text { estimate, } \sigma_j
+\end{array} \\
+\hline \text { A } & 28 & 15 \\
+\text { B } & 8 & 10 \\
+\text { C } & -3 & 16 \\
+\text { D } & 7 & 11 \\
+\text { E } & -1 & 9 \\
+\text { F } & 1 & 11 \\
+\text { G } & 18 & 10 \\
+\text { H } & 12 & 18
+\end{array}
+$$
+
+
+$P(max(\theta_j)>28) = 0.1$; $P(\theta_1>\theta_3)=0.7$
+
+## 6. Model Comparison Result
+
+Pooled model has the smallest WAIC.
+
+## 7. James-Stein Paradox
+
+https://efron.ckirby.su.domains/other/Article1977.pdf
