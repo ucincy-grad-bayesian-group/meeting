@@ -1,0 +1,362 @@
+---
+title: "Golf"
+author: "R Lucas"
+date: '2023-12-13'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+DISCLAIMER: much of the first half of this work is copied OR paraphrased through the following sites:
+
+https://mc-stan.org/users/documentation/case-studies/golf.html
+https://statmodeling.stat.columbia.edu/2019/03/21/new-golf-putting-data-and-a-new-golf-putting-model/
+https://www.youtube.com/watch?v=T1gYvX5c2sM
+https://avehtari.github.io/ROS-Examples/Golf/golf.html
+
+```{r, eval = TRUE, warning = FALSE, results = 'hide', comment = FALSE, cache.comments = FALSE, message = FALSE}
+
+# GENERAL R CONFIGURATION
+options(digits = 2)
+options(htmltools.dir.version = FALSE)
+set.seed(1123)
+
+# Libraries, functions used in this notebook
+library(bayesplot)
+library(dplyr)
+library(reshape2)
+library(lubridate)
+library(utils)
+library(tidyverse)
+library(ggplot2)
+library(rstan)
+library(MASS)
+library(emdi)
+library(rstanarm)
+library(parallel)
+library(doParallel)
+library(nnet)
+library(qrnn)
+
+print_file <- function(file, nlines=-1L) {
+  cat(paste(readLines(file, n=nlines), "\n", sep=""), sep="")
+}
+
+# R function for the logistic function
+logit <- function (x) {
+  log(x / (1-x))
+}
+invlogit <- function (x) {
+    1/(1 + exp(-x))
+}
+
+posterior_interval.stanreg <-
+  function(object,
+           prob = 0.9,
+           type = "central",
+           pars = NULL,
+           regex_pars = NULL,
+           ...) {
+    if (!identical(type, "central"))
+      stop("Currently the only option for 'type' is 'central'.",
+           call. = FALSE)
+    
+    mat <- as.matrix.stanreg(object, pars = pars, regex_pars = regex_pars)
+    rstantools::posterior_interval(mat, prob = prob)
+  }
+
+Sys.setenv(USE_CXX14 = 1)
+library("rstan")
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+```
+
+
+Retrieve data
+```{r}
+if (!file.exists("golf_data.txt")) {
+  download.file("https://raw.githubusercontent.com/jgabry/bayes-workflow-book/master/data/golf.txt",
+                destfile="golf_data.txt", quiet=T)
+}
+
+golf <- read.table("golf_data.txt", header = TRUE, skip = 2)
+x <- golf$x
+y <- golf$y
+n <- golf$n
+se <- sqrt((y / n) * (1 - y / n) / n)
+golf$se <- se
+golf <- data.frame(golf)
+# head(golf)
+```
+
+The following graph shows data from professional golfers on the proportion of successful putts as a function of distance from the hole. Unsurprisingly, the probability of making the shot declines as a function of distance:
+
+```{r}
+# scatterplot of data with error bars
+data_plot <- ggplot(golf, aes(x = x, y = y / n)) +
+  geom_point() +
+  geom_linerange(aes(ymin = y / n - se, ymax = y / n + se)) +
+  scale_x_continuous(limits = c(0, max(x) * 1.05), expand = c(0,0)) +
+  scale_y_continuous(limits = c(0,1.02), expand = c(0,0),
+                     breaks = c(0.0, 0.2, 0.4, 0.6, 0.8, 1.0)) +
+  labs(x = "Distance from hole (feet)", y = "Probability of success") +
+  theme_classic() +
+  theme(axis.text.y = element_text(size = 11, angle = 90,
+                                   hjust = 0.5, vjust = 0.5,
+                                   margin = margin(l = 10, r = 10),
+                                   colour = "black"),
+        axis.text.x = element_text(size = 11, angle = 0,
+                                   hjust = 0.5, vjust = 0.5,
+                                   margin = margin(t = 10, b = 10),
+                                   colour = "black"),
+        axis.ticks.length = unit(0.25, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# add title, label success/attempts for each point
+golf_data_plot <- data_plot +
+  labs(title = "Pro golf putting data") +
+  geom_text(aes(label = paste(y, n, sep = " / ")),
+            nudge_x = 0.02, nudge_y = golf$se + 0.02,
+            size = 3, col = "grey20")
+
+golf_data_plot
+```
+
+The error bars associated with each point $j$ in the above graph are simple classical standard deviations, $\sqrt{\frac{\hat{p}_j (1 - \hat{p}_j)}{n_j}}$, where $\hat{p}_j = \frac{y_j}{n_j}$ is the success rate for putts taken at distance $x_j$.
+
+## Logistic regression
+
+Can we model the probability of success in golf putting as a function of $x$, the distance from the hole? The usual statistical practice is to use a simple regression model, in this case, a logistic regression: $$y_j ∼ \text{binomial}(n_j , \text{logit}^{−1}(a + bx_j)), \text{for} j = 1, \ldots, J$$, where $\text{logit}(p) = \log\left(\frac{p}{1-p} \right)$.
+
+In Stan, this model is coded as the following:
+```{r}
+if (!file.exists("golf_logistic.stan")) {
+  download.file("https://raw.githubusercontent.com/jgabry/bayes-workflow-book/master/stan/golf_logistic.stan",
+                destfile = "golf_logistic.stan", quiet = T)
+}
+print_file("golf_logistic.stan")
+```
+
+Here is the result of fitting this model to the data:
+```{r}
+fit_logistic <- stan("golf_logistic.stan",
+                     data = list(x = x, y = y, n = n, J = length(x)))
+print(fit_logistic, probs = c(0.025, 0.5, 0.975))
+```
+
+Stan has computed the posterior means $\pm$ standard deviations of $a$ and $b$ to be $2.23 \pm 0.06$ and $-0.26 \pm 0.01$, respectively. The Monte Carlo standard error of the mean of each of these parameters is $0.00$ (to two decimal places), indicating that the simulations have run long enough to estimate the posterior means precisely. The posterior quantiles give a sense of the uncertainty in the parameters, with 95% posterior intervals of [2.12,2.34] and [−0.27,−0.24] for $a$ and $b$, respectively. Finally, the values of `Rhat` near 1 tell us that the simulations from Stan's four simulated chains have mixed well.
+
+The following graph shows the fit plotted along with the data:
+```{r}
+sims_logistic <- as.matrix(fit_logistic)
+a_hat <- median(sims_logistic[,"a"])
+b_hat <- median(sims_logistic[,"b"])
+x_plus = c(1:21)
+median_hat = invlogit(a_hat + b_hat * x_plus)
+curve_label = paste("Logistic regression, a = ", round(a_hat, 2),
+                    ", b = ", round(b_hat, 2), sep = "")
+curves = sapply(sample(nrow(sims_logistic), 100),
+                function(i) {
+                  invlogit(sims_logistic[i,"a"] + sims_logistic[i,"b"] * x_plus)
+                })
+curves_melted = melt(curves)
+median_melted = melt(median_hat)
+fit_plot <- data_plot + labs(title = "Fitted logistic regression")
+fit_plot <- fit_plot + geom_text(x = 12, y = 0.6, label = curve_label)
+fit_plot <- fit_plot + geom_line(data = curves_melted,
+                                 aes(x = Var1, y = value, group = Var2),
+                                 color = "grey")
+fit_plot <- fit_plot + geom_line(data = median_melted,
+                                 aes(x = x_plus, y = value),
+                                 linewidth = 0.5, color = "blue")
+suppressMessages(print(fit_plot))
+```
+
+The thick line shows the fit corresponding to the posterior median estimates of the parameters $a$ and $b$; the light lines show 20 draws from the posterior distribution.
+
+In this example, posterior uncertainties in the parameter estimates are small, and for simplicity we will just plot point estimates based on posterior median parameter estimates for the remaining models. Our focus here is on the sequence of models that we fit, not so much on uncertainty in particular model parameters.
+
+## Modeling from first principles
+
+As an alternative to logistic regression, we shall build a model from first principles and fit it to the data. The graph below shows a simplified sketch of a golf shot. The dotted line represents the angle within which the ball of radius $r$ must be hit so that it falls within the hole of radius $R$. This threshold angle is $\sin^{-1}\left( \frac{R-r}{x}\right)$.
+
+The next step is to model human error. We assume that the golfer is attempting to hit the ball completely straight but that many small factors interfere with this goal, so that the actual angle follows a normal distribution centered at 0 with some standard deviation $\sigma$.
+
+The probability the ball goes in the hole is then the probability that the angle is less than the threshold; that is, $$\Pr\left( |\text{angle}| < \sin^{-1}\left( \frac{R-r}{x}\right) \right) = 2 \Phi\left(\frac{\sin^{-1}\left( \frac{R-r}{x}\right)}{\sigma}\right) - 1$$ where $\Phi$ is the cumulative normal distribution function. The only unknown parameter in this model is $\sigma$, the standard deviation of the distribution of shot angles. Stan (and, for that matter, R) computes trigonometry using angles in radians, so at the end of our calculations we will need to multiply by $\frac{180}{\pi}$ to convert to degrees, which are more interpretable by humans.
+
+Our model then has two parts: $$y_j ~ \text{binomial}(n_j, p_j)$$ $$p_j = 2\Phi\left(\frac{\sin^{-1}\left( \frac{R-r}{x_j}\right)}{\sigma}\right) - 1,$$ for $j = 1, \ldots, J$.
+
+Here is the model in Stan for estimating $\sigma$:
+
+```{r}
+if (!file.exists("golf1_vec.stan")) {
+  download.file("https://raw.githubusercontent.com/jgabry/bayes-workflow-book/master/stan/golf1_vec.stan",
+                destfile="golf1_vec.stan", quiet=T)
+}
+print_file("golf1_vec.stan")
+```
+
+The data $J, n, x, y$ have already been set up as part of running the logistic model above; we just need to define $r$, the diameter of the golf ball, and $R$ the diameter of the hole. The golf ball and hole have diameters 1.68 and 4.25 inches, respectively, which we convert to feet.
+
+```{r}
+r <- (1.68 / 2) / 12
+R <- (4.25 / 2) / 12
+fit_trig <- stan("golf1_vec.stan", data = list(x = x, y = y, n = n, J = length(x), r = r, R = R))
+print(fit_trig, probs = c(0.025, 0.5, 0.975))
+```
+
+The model has a single parameter, $\sigma$. From the output, we find that Stan has computed the posterior mean of $\sigma$ to be 0.03 (multiplying this by $\frac{180}{\pi}$, this comes to 1.5 degrees). The Monte Carlo standard error of the mean is 0 (to four decimal places), indicating that the simulations have run long enough to estimate the posterior mean precisely. When we print the fit with more precision (argument digits_summary=5), we see that the posterior standard deviation is calculated at 0.0004 (that is, 0.02 degrees), indicating that $\sigma$ itself has been estimated with high precision, which makes sense given the large number of data points and the simplicity of the model. The precise posterior distribution of $\sigma$ can also be seen from the narrow range of the posterior quantiles. Finally, `Rhat` is near 1, telling us that the simulations from Stan's four simulated chains have mixed well.
+
+We next plot the data and the fitted model (here using the posterior median of $\sigma$ but in this case the uncertainty is so narrow that any reasonable posterior summary would give essentially the same result), along with the logistic regression fitted earlier:
+
+```{r}
+sims_trig <- as.matrix(fit_trig)
+sigma_hat <- median(sims_trig[,"sigma"])
+
+x_grid <- seq(R-r, 1.1*max(x), .01)
+p_grid <- 2*pnorm(asin((R-r)/x_grid) / sigma_hat) - 1
+df = data.frame(x=x_grid, y=p_grid)
+
+two_plot <- data_plot + labs(title="Two models fit to the golf putting data") +
+  geom_text(x=11.1, y=0.52, label="Logistic regression", col = "blue") +
+  geom_text(x=5.225, y=0.93, label="Geometry-based model", col = "orange") +
+  geom_line(data=df, aes(x=x, y=y), color="orange", linewidth=1, na.rm=T) +
+  geom_line(data=median_melted, aes(x=x_plus, y=value), linewidth=0.5, color="blue")
+
+two_plot
+```
+
+The custom geometry-based model fits the data much better. This is not to say that the model is perfect---any experience of golf will reveal that the angle is not the only factor determining whether the ball goes in the hole---but it seems like a useful start, and it is good to know that we can fit nonlinear models by just coding them up in Stan.
+
+## Fit a shallow Quantile Regression ANN with one node.
+
+Let's fit a quick single-hidden layer Quantile Regression Neural Net made of ONE node (will definitely help with over-fitting) of the percentages by distance for comparison.
+
+We'll fit the median regression model as well as gain some insight (shown later) on quantifying uncertainty within the observations by looking at the 2.5 and 97.5 percentile regressions. 
+```{r}
+distance <- c(2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20)
+attempts <- c(1443,694,455,353,272,256,240,217,200,237,202,192,174,167,201,195,191,147,152)
+successes <- c(1346,577,337,208,149,136,111,69,67,75,52,46,54,28,27,31,33,20,24)
+
+data <- data.frame(cbind(distance, attempts, successes))
+
+data <- data %>% rowwise() %>%
+  mutate(prob.of.success = successes / attempts,
+         s.d. = sqrt(prob.of.success * (1 - prob.of.success) / attempts))
+data.nn <- data.frame(data)
+
+tau <- c(0.025, 0.5, 0.975)
+
+set.seed(1)
+w <- p <- vector("list", length(tau))
+
+for(i in seq_along(tau)) {
+  w[[i]] <- qrnn.fit(x = as.matrix(data.nn$distance, ncol = 1),
+                     y = as.matrix(data.nn$prob.of.success, ncol = 1),
+                     n.hidden = 1,
+                     # n.hidden2 = 2,
+                     tau = tau[i],
+                     n.ensemble = 1,
+                     n.trials = 2)
+}
+
+for(i in seq_along(tau)) {
+  p[[i]] <- qrnn.predict(x = as.matrix(data.nn$distance, ncol = 1),
+                         parms = w[[i]])
+}
+
+fitted.values <- data.frame(cbind(data.nn, p[[1]], p[[2]], p[[3]]))
+```
+
+```{r}
+sims_trig <- as.matrix(fit_trig)
+sigma_hat <- median(sims_trig[,"sigma"])
+
+x_grid <- seq(R-r, 1.1*max(x), .01)
+p_grid <- 2*pnorm(asin((R-r)/x_grid) / sigma_hat) - 1
+df = data.frame(x=x_grid, y=p_grid)
+
+p.new <- vector("list", length(tau))
+for(i in seq_along(tau)) {
+  p.new[[i]] <- qrnn.predict(x = as.matrix(x_grid, ncol = 1),
+                             parms = w[[i]])
+}
+df.nn = data.frame(x=x_grid, y=p.new[[2]])
+
+two_plot <- data_plot + labs(title="Two models fit to the golf putting data") +
+  geom_text(x=11, y=0.5, label="Logistic regression", col = "blue") +
+  geom_text(x=5.5, y=0.9, label="Geometry-based model", col = "orange") +
+  geom_text(x=20.25, y=0.22, label="QRNN", col = "green") +
+  geom_line(data=df, aes(x=x, y=y), color="orange", linewidth=1, na.rm=T) +
+  geom_line(data=median_melted, aes(x=x_plus, y=value), linewidth=0.5, color="blue") +
+  geom_line(data=df.nn, aes(x=x, y=y), linewidth=1, color="green")
+
+two_plot
+```
+
+
+The flexibility of the QRNN model shows, even with a single hidden node in one hidden layer, great fit.
+
+## UQ
+
+next, I want to compare the confidence intervals of traditional method to that of the non-parametric neural network 95% model range.
+
+Below derives the traditional-frequentist logistic regression generalized-linear model
+```{r}
+distance <- c(2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20)
+attempts <- c(1443,694,455,353,272,256,240,217,200,237,202,192,174,167,201,195,191,147,152)
+successes <- c(1346,577,337,208,149,136,111,69,67,75,52,46,54,28,27,31,33,20,24)
+
+data <- data.frame(cbind(distance, attempts, successes))
+
+data <- data %>% rowwise() %>%
+  mutate(prob.of.success = successes / attempts,
+         s.d. = sqrt(prob.of.success * (1 - prob.of.success) / attempts))
+data <- data.frame(data)
+
+logistic.reg.model <- glm(prob.of.success ~ distance, data = data, family = binomial)
+# summary(logistic.reg.model)
+# confint(logistic.reg.model)
+```
+
+Below compares the UQ of the traditional and QRNN models....producing 95% (confidence) bands.
+```{r}
+new.dist <- with(data, data.frame(distance = seq(from = 0, to = 22, by = 0.005)))
+
+new.logreg.pred <- predict(logistic.reg.model, newdata = new.dist, type = "link", se.fit = TRUE)
+upr <- new.logreg.pred$fit + (1.96 * new.logreg.pred$se.fit)
+lwr <- new.logreg.pred$fit - (1.96 * new.logreg.pred$se.fit)
+fit <- new.logreg.pred$fit
+
+p.newer <- vector("list", length(tau))
+for(i in seq_along(tau)) {
+  p.newer[[i]] <- qrnn.predict(x = as.matrix(new.dist, ncol = 1),
+                               parms = w[[i]])
+}
+df2.nn = data.frame(new.dist, p.newer[[1]], p.newer[[2]], p.newer[[3]])
+
+with(data, plot(distance, prob.of.success, type = "n", 
+    ylim = c(0, 1), ylab = "Probability of success", xlab = "Distance"))
+with(new.logreg.pred, lines(seq(from = 0, to = 22, by = 0.005),
+                            exp(fit) / (1 + exp(fit)), col = "blue", lwd = 2))
+# lines(x = new.dist$distance, y = upr, col = "blue", lty = 2)
+# lines(x = new.dist$distance, y = lwr, col = "blue", lty = 2)
+# with(new.logreg.pred, lines(seq(from = 0, to = 22, by = 0.005),
+#                             exp(fit + 0.675 * se.fit) / (1 + exp(fit + 0.675 * se.fit)), lty = 2))
+# with(new.logreg.pred, lines(seq(from = 0, to = 22, by = 0.005),
+#                             exp(fit - 0.675 * se.fit) / (1 + exp(fit - 0.675 * se.fit)), lty = 2))
+with(new.logreg.pred, lines(seq(from = 0, to = 22, by = 0.005),
+                            exp(fit + 1.96 * se.fit) / (1 + exp(fit + 1.96 * se.fit)), lty = 2, col = "blue"))
+with(new.logreg.pred, lines(seq(from = 0, to = 22, by = 0.005),
+                            exp(fit - 1.96 * se.fit) / (1 + exp(fit - 1.96 * se.fit)), lty = 3, col = "blue"))
+lines(x = df2.nn$distance, y = df2.nn$p.newer..2.., col = "red", lwd = 2)
+lines(x = df2.nn$distance, y = df2.nn$p.newer..1.., col = "red", lty = 3)
+lines(x = df2.nn$distance, y = df2.nn$p.newer..3.., col = "red", lty = 2)
+points(data$distance, data$prob.of.success)
+```
+
+The advantage seems pretty clear here....RED is Neural Network model and BLUE is standard Logistic Regression Model.
+
+Again, for the brevity of an hour, we are not covering the model testing of new data as presented by Gelman. We'll leave that for the next time.
