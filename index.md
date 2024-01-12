@@ -37,7 +37,7 @@ Winter Break. Will return in 2024 Jan.
   - "Theory of Model Comparison Criteria." Yuan delved into Bayesian model comparison criteria like DIC, WAIC, and LOOIC. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/model_comparison.Rmd). [Html](/meeting/week5/model_comparison.html)
   - "Application." Eric demonstrated how to calculate these criteria for Rstan models. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/Model_comp.Rmd). [html](/meeting/week5/Model_comp.html)
 
-- **Week 6:** "Andrew Gelman's Analysis of Golf Putting Data." Rick presented Gelman's work on golf putting data, showcasing the flexibility of the Bayesian method and Rstan in building models from fundamental principles. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/Model_comp.Rmd). [html](/meeting/week5/Model_comp.html)
+- **Week 6:** "Andrew Gelman's Analysis of Golf Putting Data." Rick presented Gelman's work on golf putting data, showcasing the flexibility of the Bayesian method and Rstan in building models from fundamental principles. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week6/BDA_12.13.2023.Rmd.Rmd). [html](/meeting/week6/BDA_12.13.2023.html)
 
 - **Week 7:** "Model Selection for Football Data." Hyogo conducted a comparative analysis of different models, evaluating their performance on test data specific to football. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week7/Oct-27-BDA-Contents.Rmd). [Html](/meeting/week7/Oct-27-BDA-Contents.html)
 
