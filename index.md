@@ -13,10 +13,9 @@ We are a group of graduate statistics students at the University of Cincinnati w
 Our meetings take place every Friday at 4:00 PM French Hall 4119. For those who cannot attend in person, you are welcome to join us online via Zoom using the link: [Link](https://ucincinnati.zoom.us/j/6617187079).
 
 ## This Week's Topic
-Winter Break. Will return in 2024 Jan.
+
+**Jan.19th:** Use hierarchical model to estimate team ability in World Cup.
   
-
-
 
 ## Recent Discussions
 
