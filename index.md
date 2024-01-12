@@ -16,6 +16,26 @@ Our meetings take place every Friday at 4:00 PM French Hall 4119. For those who 
 
 **Jan.19th:** Use hierarchical model to estimate team ability in World Cup.
   
+## Meeting Schedule and Topics
+
+In our series of meetings, we will cover several key stages of modeling techniques and applications. Below is the general schedule and the main topics to be discussed in each stage:
+
+### Stage 1: Basic Modeling Technique
+This stage will lay the foundation for our modeling approach, focusing on:
+
+- **Prior Setup:** Establishing initial assumptions and baselines for our models.
+- **Common Probability Models:** Exploring various probability models and their applications.
+- **Model Checking and Comparison:** Techniques for validating and comparing different models.
+  
+These techniques will be a recurring theme and will be applied throughout our subsequent discussions.
+
+### Stage 2: Hierarchical Model
+In the second stage, we will delve into Hierarchical Models, exploring their structure, benefits, and specific use cases in complex data analysis.
+
+### Stage 3: Models Taking into Account Data Collection Process
+This stage will focus on models that specifically consider the data collection process, ensuring that our analysis accounts for any biases or limitations inherent in how the data was gathered.
+
+
 
 ## Recent Discussions
 
