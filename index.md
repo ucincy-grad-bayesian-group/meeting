@@ -14,7 +14,7 @@ Our meetings take place every Friday at 4:00 PM French Hall 4119. For those who 
 
 ## This Week's Topic
 
-**Jan.19th:** Use hierarchical model to estimate team ability in World Cup.
+**Jan.19th:** Use hierarchical model to estimate team ability in World Cup [Kyle Mann].
   
 ## Meeting Schedule and Topics
 
