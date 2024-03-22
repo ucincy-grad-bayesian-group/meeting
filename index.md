@@ -70,11 +70,11 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Week 11:** "". Yuan Zhou talked about
 
-- **Week 11:** "". Yuan Zhou talked about
+- **Week 11 (Feb 23th):** "A hierarchical model for estimating excess mortality due to COVID19 in Bangladesh" - Hancheng Li. This model applies to a survey data and allows information sharing across month and age groups.
 
-- **Week 11:** "". Yuan Zhou talked about
+- **Week 11 (Mar 1st):** "A hierarchical model for estimating species richness" - Yuan Zhou. This model accounts for species absence and nondetection. 
 
-- **Week 11:** "". Yuan Zhou discussed a hierarchical model used for forecasting U.S presidential election.
+- **Week 11 (Mar 8th):** "A hierarchical model for U.S. presidential election prediction" - Yuan Zhou. This model allows information sharing information across states and over time. 
 
 
 ## Join Us
