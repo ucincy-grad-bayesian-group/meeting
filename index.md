@@ -14,7 +14,7 @@ Our meetings take place every Friday at 4:00 PM French Hall 4119. For those who 
 
 ## This Week's Topic
 
-**Jan.19th:** Use hierarchical model to estimate team ability in World Cup [Kyle Mann].
+**Mar. 21st:** The election prediction model Andrew Gelman et al. developed in 2020. [Hancheng Li].
   
 ## Meeting Schedule and Topics
 
