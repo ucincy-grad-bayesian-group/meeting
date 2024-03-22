@@ -66,6 +66,17 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Week 10:** "A hierarchical model example from BDA- 8 school example". Yuan Zhou discussed the arguments the author proposed for using a hierarchical model in this example and the connection between it and James-Stein Estimator. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week10/8-school.Rmd). [Html](/meeting/week10/8-school.html)
 
+- **Week 11:** "". Yuan Zhou talked about
+
+- **Week 11:** "". Yuan Zhou talked about
+
+- **Week 11:** "". Yuan Zhou talked about
+
+- **Week 11:** "". Yuan Zhou talked about
+
+- **Week 11:** "". Yuan Zhou discussed a hierarchical model used for forecasting U.S presidential election.
+
+
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
 
