@@ -66,15 +66,17 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Week 10:** "A hierarchical model example from BDA- 8 school example". Yuan Zhou discussed the arguments the author proposed for using a hierarchical model in this example and the connection between it and James-Stein Estimator. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week10/8-school.Rmd). [Html](/meeting/week10/8-school.html)
 
-- **Week 11:** "". Yuan Zhou talked about
+- **Week 12 (Jan 19th):** "A hierarchical modeling for estimating team abilities in World Cup"- Kyle Mann.
 
-- **Week 11:** "". Yuan Zhou talked about
+- **Week 13 (Feb 2nd):** "A hierarchical modeling of the gym waiting time data"- Yuan Zhou. 
 
-- **Week 11 (Feb 23th):** "A hierarchical model for estimating excess mortality due to COVID19 in Bangladesh" - Hancheng Li. This model applies to a survey data and allows information sharing across month and age groups.
+- **Week 14 (Feb 16th)** "How and why hierarchical model works"- Yuan Zhou. This discussion is about addressing some confusions regarding our gym data waiting model.
 
-- **Week 11 (Mar 1st):** "A hierarchical model for estimating species richness" - Yuan Zhou. This model accounts for species absence and nondetection. 
+- **Week 15 (Feb 23th):** "A hierarchical model for estimating excess mortality due to COVID19 in Bangladesh" - Hancheng Li. This model applies to a survey data and allows information sharing across month and age groups.
 
-- **Week 11 (Mar 8th):** "A hierarchical model for U.S. presidential election prediction" - Yuan Zhou. This model allows information sharing information across states and over time. 
+- **Week 16 (Mar 1st):** "A hierarchical model for estimating species richness" - Yuan Zhou. This model accounts for species absence and nondetection. 
+
+- **Week 17 (Mar 8th):** "A hierarchical model for U.S. presidential election prediction" - Yuan Zhou. This model allows information sharing information across states and over time. 
 
 
 ## Join Us
