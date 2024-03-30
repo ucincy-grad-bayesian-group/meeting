@@ -1,0 +1,637 @@
+---
+title: "Gym data analysis"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Study Goal
+
+Investigate what factors affect the waiting time in the gym and estimate the waiting time for each machine.
+
+# Reading and Recoding Data
+```{r Data Reading, message=FALSE, warning=FALSE}
+library(readxl)
+library(rstan)
+library(ggplot2)
+library(dplyr)
+library(loo)
+library(lubridate)
+library(timeDate)
+library(broom)
+# Replace the URL with the actual URL of the raw .rda file
+url_xlsx <- "https://github.com/ucincy-grad-bayesian-group/meeting/raw/main/Week11/gymdata.xlsx"
+# Open a connection to the URL
+# Local temporary file path
+temp_file <- tempfile(fileext = ".xlsx")
+
+# Download the file
+download.file(url_xlsx, destfile = temp_file, mode = "wb")
+
+gymdata <- read_excel(temp_file)
+unlink(temp_file)
+
+# correct data
+gymdata$Date <- as.Date(gymdata$Date)  # Convert to Date format if not already
+
+# Change the year to 2023
+year(gymdata$Date) <- 2023
+
+
+```
+
+
+
+```{r Recoding the variables and construct model matrix, message=FALSE, warning=FALSE}
+
+# add weekday indicator
+
+# Weekday Indicator (TRUE for Monday to Friday, FALSE for Saturday and Sunday)
+gymdata$IsWeekday <- !weekdays(gymdata$Date) %in% c("Saturday", "Sunday")
+
+
+
+ref_date <- as.Date("2023-09-01")
+
+# Calculate the difference in days
+gymdata$Date <- as.numeric(gymdata$Date - ref_date)
+
+breaks <- c(1, 3, 5, 7)
+
+# Categorize time into intervals
+gymdata$time_group <- cut(gymdata$time, breaks, include.lowest = TRUE, right = FALSE,
+                     labels = c("1-3", "3-5", "5-7"))
+names(gymdata)[3] <- "waiting_time"
+
+
+head(gymdata)
+```
+
+
+# Exploratory Data Analysis
+
+```{r Initial Model Fitting and Checking, message=FALSE, warning=FALSE}
+# Exploration Data Analysis
+
+nrow(gymdata)
+table(gymdata$time_group)
+table(gymdata$Machine)
+
+plot(gymdata$Date, jitter(gymdata$waiting_time, amount = 0.3), 
+     pch = 19, cex = 0.4, 
+     xlab = "Days from semester start", 
+     ylab = "waiting time (min)",
+     main = "Gym Waiting Time Over Days")
+
+
+ggplot(gymdata, aes(x = Machine, y = waiting_time,
+                    color=Machine)) +
+  geom_jitter(width = 0.2, height = 0) +
+  theme_minimal() +
+  labs(x = "Machine", y = "waiting time", title = "Jittered Points Plot")
+
+
+plot(gymdata$time, jitter(gymdata$waiting_time, amount = 0.3), pch=19, cex=0.5)
+
+ggplot(gymdata, aes(x = IsWeekday, y = waiting_time,
+                    color=IsWeekday)) +
+  geom_jitter(width = 0.2, height = 0) +
+  theme_minimal() +
+  labs(x = "IsWeekday", y = "waiting time", title = "Jittered Points Plot")
+
+```
+
+
+# Quick model fitting
+```{r  message=FALSE, warning=FALSE}
+# quick model fitting
+fit_lm <- lm(waiting_time ~ Date + Machine + time_group + IsWeekday, data= gymdata)
+summary(fit_lm)
+
+# logistic regression check
+gymdata$wait_or_not <- ifelse(gymdata$waiting_time==0,0,1)
+summary(glm(wait_or_not~Date + Machine + time_group + IsWeekday, data= gymdata))
+
+
+# residual check
+plot(gymdata$Date, fit_lm$residuals, pch=19, cex=0.7)
+plot(fit_lm$fitted.values, fit_lm$residuals, pch=19, cex=0.7)
+
+qqnorm(fit_lm$residuals)
+qqline(fit_lm$residuals)
+
+# square root transformation
+fit_lm_sqrt <- lm(sqrt(waiting_time) ~ Date+Machine+time_group+IsWeekday, data= gymdata)
+summary(fit_lm_sqrt)
+
+# residual check
+plot(gymdata$Date, fit_lm_sqrt$residuals, pch=19, cex=0.7)
+plot(fit_lm_sqrt$fitted.values, fit_lm_sqrt$residuals, pch=19, cex=0.7)
+
+
+```
+
+# Bayesian linear regression
+
+Model:
+
+$$
+\begin{align*}
+Y_i &= \beta_0 + d_i \beta_1 + w_i \beta_2 + h_i \beta_3 + \mathbf{m_i} \mathbf{\beta_4} + \mathbf{t_i} \mathbf{\beta_5} + \varepsilon_i, & \varepsilon_i &\sim \mathcal{N}(0, \sigma^2) \\
+\text{where } d_i &\text{: time from semester start,} \\
+w_i &\text{: weekday indicator,} \\
+h_i &\text{: holiday indicator,} \\
+\mathbf{m_i} &\text{: machine indicator,} \\
+\mathbf{t_i} &\text{: time for the exercise}
+\end{align*}
+$$
+
+```{r Rstan_models, message=FALSE, warning=FALSE}
+ # model matrix
+ model_mat <- model.matrix(~Date+Machine+time_group+IsWeekday-1, gymdata)
+
+ # model 1. Multiple linear Models
+ y <- gymdata$waiting_time
+
+ stan_model_code <- "
+ data {
+   int<lower=0> N;        // number of data points
+   int<lower=0> K;        // number of predictors
+   matrix[N, K] X;        // predictor matrix
+   vector[N] y;           // outcome vector
+ }
+ parameters {
+   vector[K] beta;        // coefficients for predictors
+   real<lower=0> sigma;   // error scale
+ }
+ model {
+   y ~ normal(X * beta, sigma);  // likelihood
+ }
+
+ generated quantities {
+   vector[N] log_lik;
+   for (n in 1:N) {
+     log_lik[n] = normal_lpdf(y[n] | X[n] * beta, sigma);
+   }
+ }
+
+ "
+
+ stan_data <- list(N = nrow(model_mat),
+                   K = ncol(model_mat),
+                   X = model_mat,
+                   y = y)
+
+
+ fit <- stan(model_code = stan_model_code,
+             data = stan_data,
+             chains = 4,
+             iter = 2000,
+             warmup = 1000,
+             thin = 1,
+             seed = 123,verbose = FALSE,
+            refresh = 0 )
+
+ #print(fit)
+
+
+ # Get the summary of the fit object
+ fit_summary <- summary(fit)
+
+ # Extract the 'beta' summary and convert to a data frame
+ beta_summary <- as.data.frame(fit_summary$summary[grepl("beta", rownames(fit_summary$summary)), ])
+
+ # Replace row names with column names from model_mat
+ rownames(beta_summary) <- colnames(model_mat)
+ beta_summary <- round(beta_summary, 2)
+ # Print the beta coefficients summary
+ print(beta_summary)
+
+ # WAIC and LOOIC calculation
+ # Extract log-likelihood
+ log_lik <- extract(fit, pars = "log_lik", permuted = TRUE)$log_lik
+
+ # Calculate LOOIC,WAIC
+ loo(log_lik)
+ waic(log_lik)
+
+# create some plots
+ 
+# Extract MCMC samples for beta parameters
+beta_samples <- extract(fit)$beta
+
+# Convert to data frame for plotting
+beta_df <- as.data.frame(beta_samples)
+colnames(beta_df) <- colnames(model_mat)
+# Assign custom names (these should match the number of beta coefficients)
+custom_names <- colnames(model_mat) #
+
+# Reshape for plotting
+beta_df_long <- reshape2::melt(beta_df)
+beta_df_long$variable <- factor(beta_df_long$variable, levels = names(beta_df),
+                                labels = custom_names)
+
+# Plot using ggplot2
+ggplot(beta_df_long, aes(x = value)) +
+  geom_histogram(bins = 30, fill = "red", alpha = 0.5) +
+  facet_wrap(~ variable, scales = "free") +
+  labs(x = "Parameter Value", y = "Frequency", title = "Histogram of Beta Coefficients") +
+  theme_minimal()
+
+# probability that waiting time for Fly is greater than bench press
+
+hist(beta_df$MachineFly-beta_df$`MachineBench Press`)
+mean((beta_df$MachineFly-beta_df$`MachineBench Press`)>0)
+```
+
+
+One issue is we have too many machines and too few data. Assuming the machines are exchangeable, we can build a hierarchical model. 
+
+# Bayesian Hierarchical Model
+ 
+ Model:
+
+$$
+\begin{align*}
+Y_i &= \beta_0 + d_i \beta_1 + w_i \beta_2 + h_i \beta_3 + \mathbf{m_i} \mathbf{\beta_4} + \mathbf{t_i} \mathbf{\beta_5} + \varepsilon_i, & \varepsilon_i &\sim \mathcal{N}(0, \sigma^2) \\
+\text{where } d_i &\text{: time from semester start,} \\
+w_i &\text{: weekday indicator,} \\
+h_i &\text{: holiday indicator,} \\
+\mathbf{m_i} &\text{: machine indicator,} \\
+\mathbf{t_i} &\text{: time for the exercise}\\
+\beta_{4j} &\sim N(\alpha,\sigma^2_{\alpha}) \text{ } i.i.d.
+\end{align*}
+$$
+
+```{r Rstan_models_rnd1, message=FALSE, warning=FALSE}
+ # model matrix
+ model_mat_rnd1 <- model.matrix(~Date+Machine+time_group+IsWeekday-1, gymdata)
+ 
+ stan_model_code_rnd1 <- "
+ data {
+   int<lower=0> N;        // number of data points
+   int<lower=0> K;        // number of predictors
+   matrix[N, K] X;        // predictor matrix
+   vector[N] y;           // outcome vector
+ }
+ parameters {
+   real mu_beta;                 // mean for betas
+   real<lower=0> sigma2_beta;    // variance for betas
+   vector[K] beta;               // coefficients for predictors
+   real<lower=0> sigma;          // error scale
+ }
+ model {
+   // Priors
+   mu_beta ~ normal(0, 5);
+   sigma2_beta ~ cauchy(0, 2);
+   for (k in 2:11) {
+     beta[k] ~ normal(mu_beta, sigma2_beta);
+   }
+   // Likelihood
+   y ~ normal(X * beta, sigma);
+ }
+ generated quantities {
+   vector[N] log_lik;
+   for (n in 1:N) {
+     log_lik[n] = normal_lpdf(y[n] | X[n] * beta, sigma);
+   }
+ }
+ 
+ "
+ 
+ stan_data_rnd1 <- list(N = nrow(model_mat_rnd1),
+                   K = ncol(model_mat_rnd1),
+                   X = model_mat_rnd1,
+                   y = y)
+ 
+ 
+ fit_rnd1 <- stan(model_code = stan_model_code_rnd1,
+             data = stan_data_rnd1,
+             chains = 4,
+             iter = 2000,
+             warmup = 1000,
+             thin = 1,
+             seed = 123,verbose = FALSE,
+            refresh = 0 )
+ 
+# print(fit_rnd1)
+ 
+ 
+ # Get the summary of the fit object
+ fit_summary <- summary(fit_rnd1)
+ 
+ # Extract the 'beta' summary and convert to a data frame
+ beta_summary_rnd1 <- as.data.frame(fit_summary$summary[grepl("beta", rownames(fit_summary$summary)), ])
+  # Replace row names with column names from model_mat
+ rownames(beta_summary_rnd1)[-(1:2)] <- colnames(model_mat_rnd1)
+ beta_summary_rnd1 <- round(beta_summary_rnd1, 2)
+ # Print the beta coefficients summary
+ print(beta_summary_rnd1)
+ 
+ # WAIC and LOOIC calculation
+ # Extract log-likelihood
+ log_lik_rnd1 <- extract(fit_rnd1, pars = "log_lik", permuted = TRUE)$log_lik
+ 
+ # Calculate LOOIC,WAIC
+loo(log_lik_rnd1)
+
+waic(log_lik_rnd1)
+```
+
+
+# Compare the prediction accuracy on the test dataset.
+```{r, Model_comparison, message=FALSE, warning=FALSE}
+ # Split into training and test dataset
+
+ 
+ # Assuming 'Machine' is the column with machine names
+ all_machines <- unique(gymdata$Machine)  # Get all unique machine names
+ 
+ # Convert 'Machine' to a factor with levels set to all possible machines
+ gymdata$Machine <- factor(gymdata$Machine, levels = all_machines)
+ 
+ 
+ set.seed(231)  # For reproducibility
+ 
+ # Split data into training and test sets
+ sample_size <- floor(0.8 * nrow(gymdata))
+ train_indices <- sample(seq_len(nrow(gymdata)), size = sample_size)
+ train_data <- gymdata[train_indices, ]
+ test_data <- gymdata[-train_indices, ]
+ 
+ # Model matrix for the hierarchical model
+ model_mat_rnd1_train <- model.matrix(~Date+Machine+time_group+IsWeekday-1, train_data)
+ model_mat_rnd1_test <- model.matrix(~Date+Machine+time_group+IsWeekday-1, test_data)
+ 
+ # Model matrix for the non-hierarchical model
+ model_mat_train <- model.matrix(~Date+Machine+time_group+IsWeekday-1, train_data)
+ model_mat_test <- model.matrix(~Date+Machine+time_group+IsWeekday-1, test_data)
+ 
+ # Response variable
+ y_train <- train_data$waiting_time
+ y_test <- test_data$waiting_time
+ 
+ # Fit the hierarchical model on the training data
+ stan_data_rnd1_train <- list(N = nrow(model_mat_rnd1_train),
+                              K = ncol(model_mat_rnd1_train),
+                              X = model_mat_rnd1_train,
+                              y = y_train,verbose = FALSE,
+            refresh = 0)
+# 
+ fit_rnd1_train <- stan(model_code = stan_model_code_rnd1,
+                        data = stan_data_rnd1_train,
+                        chains = 4,
+                        iter = 2000,
+                        warmup = 1000,
+                        thin = 1,
+                        seed = 123,verbose = FALSE,
+            refresh = 0 )
+ 
+# # Fit the non-hierarchical model on the training data
+ stan_data_train <- list(N = nrow(model_mat_train),
+                         K = ncol(model_mat_train),
+                         X = model_mat_train,
+                         y = y_train)
+# 
+ fit_train <- stan(model_code = stan_model_code,
+                   data = stan_data_train,
+                   chains = 4,
+                   iter = 2000,
+                   warmup = 1000,
+                  thin = 1,
+                   seed = 123,verbose = FALSE,
+            refresh = 0)
+ 
+ 
+ # Extract posterior samples for hierarchical model
+ posterior_samples_rnd1 <- extract(fit_rnd1_train)
+ 
+ # Extract posterior samples for non-hierarchical model
+ posterior_samples <- extract(fit_train)
+ # Predict using the hierarchical model
+ predicted_rnd1 <- apply(posterior_samples_rnd1$beta, 1, function(beta) model_mat_rnd1_test %*% beta)
+ mean_predicted_rnd1 <- rowMeans(predicted_rnd1)
+ 
+ # Predict using the non-hierarchical model
+ predicted <- apply(posterior_samples$beta, 1, function(beta) model_mat_test %*% beta)
+ mean_predicted <- rowMeans(predicted)
+ 
+ # Function to calculate Mean Squared Error
+ mse <- function(actual, predicted) {
+   mean(abs(actual - predicted))
+ }
+ 
+ # Calculate MSE for both models
+ mse_rnd1 <- mse(y_test, mean_predicted_rnd1)
+ mse_non_hier <- mse(y_test, mean_predicted)
+ 
+ # Print MSE
+ print(paste("MSE for Hierarchical Model:", mse_rnd1))
+ print(paste("MSE for Non-Hierarchical Model:", mse_non_hier))
+ 
+ 
+ 
+```
+ 
+ 
+Actually, we have information that the machines are not fully exchangeable. We know that there are way more Squat racks than Hack Squat Rack. And we need to include this information in the model to model the conditional exchangeability.
+
+
+
+# Modelling the conditional exchangeability
+
+ Model:
+
+$$
+\begin{align*}
+Y_i &= \beta_0 + d_i \beta_1 + w_i \beta_2 + h_i \beta_3 + \mathbf{m_i} \mathbf{\beta_4} + \mathbf{t_i} \mathbf{\beta_5} + \varepsilon_i, & \varepsilon_i &\sim \mathcal{N}(0, \sigma^2) \\
+\text{where } d_i &\text{: time from semester start,} \\
+w_i &\text{: weekday indicator,} \\
+h_i &\text{: holiday indicator,} \\
+\mathbf{m_i} &\text{: machine indicator,} \\
+\mathbf{t_i} &\text{: time for the exercise}\\
+\beta_{4j} &\sim N(\alpha_0+\alpha_1x_j,\sigma^2_{\alpha}) \text{ } i.i.d. \\
+x_j &\text{: the number of machine j}
+\end{align*}
+$$
+
+
+```{r , Model_rnd2, message=FALSE, warning=FALSE}
+machine_quantity <- c(11, 1, 2, 1, 2, 2, 1, 2, 10, 8)
+
+stan_model_code_rnd2 <- "
+data {
+  int<lower=0> N;                 // number of data points
+  int<lower=0> K;                 // number of predictors
+  int<lower=0> Q;
+  matrix[N, K] X;                 // predictor matrix
+  vector[N] y;                    // outcome vector
+  vector[Q] machine_quantity;     // quantity for each machine
+}
+parameters {
+  real mu_beta;                   // mean for betas
+  real mu_alpha_1;                // additional mean parameter
+  real<lower=0> sigma2_beta;      // variance for betas
+  vector[K] beta;                 // coefficients for predictors
+  real<lower=0> sigma;            // error scale
+}
+model {
+  // Priors
+  mu_beta ~ normal(0, 5);
+  mu_alpha_1 ~ normal(0, 5);      // Prior for mu_alpha_1
+  sigma2_beta ~ cauchy(0, 2);
+  for (k in 2:11) {
+    // Modified distribution for beta[k]
+    beta[k] ~ normal(mu_beta + machine_quantity[k-1] * mu_alpha_1, sigma2_beta);
+  }
+  // Likelihood
+  y ~ normal(X * beta, sigma);
+}
+generated quantities {
+  vector[N] log_lik;
+  for (n in 1:N) {
+    log_lik[n] = normal_lpdf(y[n] | X[n] * beta, sigma);
+  }
+}
+"
+
+stan_data_rnd2 <- list(
+  N = nrow(model_mat_rnd1),
+  K = ncol(model_mat_rnd1),
+  Q = 10,
+  X = model_mat_rnd1,
+  y = y,
+  machine_quantity =machine_quantity  
+)
+
+fit_rnd2 <- stan(model_code = stan_model_code_rnd2,
+             data = stan_data_rnd2,
+             chains = 4,
+             iter = 2000,
+             warmup = 1000,
+             thin = 1,
+             seed = 123,verbose = FALSE,
+            refresh = 0 )
+ 
+# print(fit_rnd1)
+ 
+ 
+ # Get the summary of the fit object
+ fit_summary <- summary(fit_rnd2)
+ 
+ # Extract the 'beta' summary and convert to a data frame
+ beta_summary_rnd2 <- as.data.frame(fit_summary$summary[grepl("beta", rownames(fit_summary$summary)), ])
+  # Replace row names with column names from model_mat
+ rownames(beta_summary_rnd2)[-(1:2)] <- colnames(model_mat_rnd1)
+ beta_summary_rnd2 <- round(beta_summary_rnd2, 2)
+ # Print the beta coefficients summary
+ print(beta_summary_rnd2)
+ 
+ # WAIC and LOOIC calculation
+ # Extract log-likelihood
+ log_lik_rnd2 <- extract(fit_rnd2, pars = "log_lik", permuted = TRUE)$log_lik
+ 
+ # Calculate LOOIC,WAIC
+loo(log_lik_rnd2)
+
+waic(log_lik_rnd2)
+ ```
+```
+
+
+# Compare two hierarchical model's accuracy on the test dataset.
+```{r, Model_comparison2, message=FALSE, warning=FALSE}
+ # Split into training and test dataset
+
+ 
+ # Assuming 'Machine' is the column with machine names
+ all_machines <- unique(gymdata$Machine)  # Get all unique machine names
+ 
+ # Convert 'Machine' to a factor with levels set to all possible machines
+ gymdata$Machine <- factor(gymdata$Machine, levels = all_machines)
+ 
+ 
+ #set.seed(231)  # For reproducibility
+ 
+ # Split data into training and test sets
+ sample_size <- floor(0.8 * nrow(gymdata))
+ train_indices <- sample(seq_len(nrow(gymdata)), size = sample_size)
+ train_data <- gymdata[train_indices, ]
+ test_data <- gymdata[-train_indices, ]
+ 
+ # Model matrix for the hierarchical model
+ model_mat_rnd1_train <- model.matrix(~Date+Machine+time_group+IsWeekday-1, train_data)
+ model_mat_rnd1_test <- model.matrix(~Date+Machine+time_group+IsWeekday-1, test_data)
+ 
+
+ # Response variable
+ y_train <- train_data$waiting_time
+ y_test <- test_data$waiting_time
+ 
+ # Fit the hierarchical model on the training data
+ stan_data_rnd1_train <- list(N = nrow(model_mat_rnd1_train),
+                              K = ncol(model_mat_rnd1_train),
+                              X = model_mat_rnd1_train,
+                              y = y_train,verbose = FALSE,
+            refresh = 0)
+# 
+ fit_rnd1_train <- stan(model_code = stan_model_code_rnd1,
+                        data = stan_data_rnd1_train,
+                        chains = 4,
+                        iter = 2000,
+                        warmup = 1000,
+                        thin = 1,
+                        seed = 123,verbose = FALSE,
+            refresh = 0 )
+ 
+# # Fit the non-hierarchical model on the training data
+ stan_data_rnd2_train <- list(
+  N = nrow(model_mat_rnd1_train),
+  K = ncol(model_mat_rnd1_train),
+  Q = 10,
+  X = model_mat_rnd1_train,
+  y = y_train,
+  machine_quantity =machine_quantity  
+)
+# 
+ fit_rnd2_train <- stan(model_code = stan_model_code_rnd2,
+                   data = stan_data_rnd2_train,
+                   chains = 4,
+                   iter = 2000,
+                   warmup = 1000,
+                  thin = 1,
+                   seed = 123,verbose = FALSE,
+            refresh = 0)
+ 
+ 
+ # Extract posterior samples for hierarchical model
+ posterior_samples_rnd1 <- extract(fit_rnd1_train)
+ 
+ # Extract posterior samples for non-hierarchical model
+ posterior_samples_rnd2 <- extract(fit_rnd2_train)
+ # Predict using the hierarchical model
+ predicted_rnd1 <- apply(posterior_samples_rnd1$beta, 1, function(beta) model_mat_rnd1_test %*% beta)
+ mean_predicted_rnd1 <- rowMeans(predicted_rnd1)
+ 
+ # Predict using the non-hierarchical model
+ predicted_rnd2 <- apply(posterior_samples_rnd2$beta, 1, function(beta) model_mat_rnd1_test %*% beta)
+ mean_predicted_rnd2 <- rowMeans(predicted_rnd2)
+ 
+ # Function to calculate Mean Squared Error
+ mse <- function(actual, predicted) {
+   mean((actual - predicted)^2)
+ }
+ 
+ # Calculate MSE for both models
+ mse_rnd1 <- mse(y_test, mean_predicted_rnd1)
+ mse_rnd2 <- mse(y_test, mean_predicted_rnd2)
+ 
+ # Print MSE
+ print(paste("MSE for Hierarchical Model 1:", mse_rnd1))
+ print(paste("MSE for Hierarchical Model 2:", mse_rnd2))
+ 
+ 
+ 
+```
+
+
