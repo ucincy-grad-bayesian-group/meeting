@@ -1,0 +1,172 @@
+---
+title: "election"
+output: html_document
+date: "2024-03-29"
+---
+
+
+# Goal
+
+Estimate national and state-level trends in support for the candidates
+
+# How
+
+Partially pool two separate predictions:
+
+- a forecast based on historically relevant economic and political factors. (juneapp + q2gdp)
+- information from state and national polls during the election season
+
+# Data
+
+https://github.com/TheEconomist/us-potus-model/blob/master/data/abramowitz_data.csv
+
+# Model
+
+For individual poll $i$,
+
+$$
+\begin{equation}
+y_i \sim Binomial(\theta_i, n_i)
+\end{equation}
+$$
+
+## Start with a simple model
+
+If poll $i$ is a state-level poll,
+
+$$
+\begin{equation}
+log(\frac{\theta_i}{1-\theta_i}) = \mu^{b}_{s[i],t[i]}
+\end{equation}
+$$
+
+- $\mu^{b}_{s,t}$, which represents the underlying support for the Democrat in state $s$ at time $t$
+
+If poll $i$ is a national-level poll,
+
+$$
+\begin{equation}
+log(\frac{\theta_i}{1-\theta_i}) = \sum_{s=1}^S w_s\mu^{b}_{s,t[i]}
+\end{equation}
+$$
+
+prior:
+
+$$
+\begin{equation}
+\mu_{\mathrm{t}}^{\mathrm{b}} \mid \mu_{\mathrm{t}-1}^{\mathrm{b}} \sim \operatorname{MVN}\left(\mu_{\mathrm{t}-1}^{\mathrm{b}}, \Sigma^{\mathrm{b}}\right)
+\end{equation}
+$$
+
+
+## Consider bias $\alpha_i$ from different sources
+
+state-level poll:
+
+$$
+\begin{equation}
+log(\frac{\theta_i}{1-\theta_i}) = \mu^{b}_{s[i],t[i]} + \alpha_i
+\end{equation}
+$$
+national-level poll:
+
+$$
+\begin{equation}
+log(\frac{\theta_i}{1-\theta_i}) = \sum_{s=1}^S w_s\mu^{b}_{s,t[i]}+ \alpha_i
+\end{equation}
+$$
+
+bias decomposition:
+
+$$
+\begin{equation}
+\alpha_{\mathrm{i}}=\mu_{\mathrm{p}[\mathrm{i}]}^{\mathrm{c}}+\mu_{\mathrm{r}[\mathrm{i}]}^{\mathrm{r}}+\mu_{\mathrm{m}[\mathrm{i}]}^{\mathrm{m}}+\mathrm{z_i} \epsilon_{\mathrm{t}[\mathrm{i}]}
+\end{equation}
+$$
+
+- $\mu^c$: house effects. A polling organization's results lean in favor of one party.
+- $\mu^r$: polling population effects. Effects caused by different population. (e.g. likely voters and registered voters)
+- $\mu^m$: polling mode effects. (e.g. live caller or online)
+- $z_i$: equal to 1 if the pollster does not adjust for partisanship and 0 otherwise
+- $\epsilon_t$: nonresponse bias at time $t$
+
+prior:
+
+$$
+\begin{equation}
+\begin{aligned}
+\mu^{\mathrm{c}}_c & \sim \operatorname{Normal}\left(0, \sigma^{\mathrm{c}}\right) \\
+\mu^{\mathrm{r}}_r & \sim \operatorname{Normal}\left(0, \sigma^{\mathrm{r}}\right) \\
+\mu^{\mathrm{m}}_m & \sim \operatorname{Normal}\left(0, \sigma^{\mathrm{m}}\right)
+\end{aligned}
+\end{equation}
+$$
+$$
+\begin{equation}
+\begin{gathered}
+\xi_1 \mid \rho, \sigma^{\xi} \sim \operatorname{Normal}\left(0, \frac{1}{\sqrt{1-\rho^2}} \sigma^{\xi}\right) \\
+\xi_{\mathrm{t}} \mid \xi_{\mathrm{t}-1}, \rho, \sigma^{\xi} \sim \operatorname{Normal}\left(\rho \xi_{\mathrm{t}-1}, \sigma^{\xi}\right) \text { for } \mathrm{t}=2, \ldots, \mathrm{T} \\
+\rho \sim \operatorname{Nnormal}(0.7,0.1) .
+\end{gathered}
+\end{equation}
+$$
+
+
+## Consider measurement error $\zeta_i$
+
+
+state-level poll:
+
+$$
+\begin{equation}
+log(\frac{\theta_i}{1-\theta_i}) = \mu^{b}_{s[i],t[i]} + \alpha_i + \zeta^{state}_i
+\end{equation}
+$$
+national-level poll:
+
+$$
+\begin{equation}
+log(\frac{\theta_i}{1-\theta_i}) = \sum_{s=1}^S w_s\mu^{b}_{s,t[i]}+ \alpha_i+\zeta^{national}_i
+\end{equation}
+$$
+
+prior: 
+
+$$
+\begin{equation}
+\begin{aligned}
+\zeta_{\mathrm{i}}^{\text {national }} & \sim \operatorname{Normal}\left(0, \sigma^{\text {national }}\right) \\
+\zeta_{\mathrm{i}}^{\text {state }} & \sim \operatorname{Normal}\left(0, \sigma^{\text {state }}\right) 
+\end{aligned}
+\end{equation}
+$$
+
+
+## Consider polling error
+
+
+state-level poll:
+
+$$
+\begin{equation}
+log(\frac{\theta_i}{1-\theta_i}) = \mu^{b}_{s[i],t[i]} + \alpha_i + \zeta^{state}_i + \xi_{s[i]}
+\end{equation}
+$$
+
+national-level poll:
+
+$$
+\begin{equation}
+log(\frac{\theta_i}{1-\theta_i}) = \sum_{s=1}^S w_s\mu^{b}_{s,t[i]}+ \alpha_i+\zeta^{national}_i + 
+\sum_{s=1}^S w_s \xi_s
+\end{equation}
+$$
+
+
+prior:
+
+$$
+\begin{equation}
+\xi \sim \operatorname{MVN}\left(0, \Sigma^{\xi}\right)
+\end{equation}
+$$
