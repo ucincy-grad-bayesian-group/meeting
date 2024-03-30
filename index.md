@@ -78,6 +78,9 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Week 17 (Mar 8th):** "A hierarchical model for U.S. presidential election prediction" - Yuan Zhou. This model allows information sharing information across states and over time. 
 
+- **Week 18 (Mar 22nd):**
+
+- **Week 19 (Mar 29th):**
 
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
