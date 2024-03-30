@@ -76,11 +76,11 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Discussion 15 (Mar 1st):** "A hierarchical model for estimating species richness" - Yuan Zhou. This model accounts for species absence and nondetection. 
 
-- **Discussion 16 (Mar 8th):** [Presidential Election Prediction Series 1] - Yuan Zhou. Yuan introduced a hierarchical model that allows information sharing across states and over time. 
+- **Discussion 16 (Mar 8th):** [Presidential Election Prediction Series 1] - Yuan Zhou. Yuan introduced a hierarchical model that allows information sharing across states and over time.  [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week16/election.Rmd). [Html](/meeting/week16/election.html)
 
-- **Discussion 17 (Mar 22nd):** [Presidential Election Prediction Series 2] - Hancheng Li. Hancheng introduced a paper on presidential election prediction which combines prediction from time-for-change model and information from polls. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week17/Dynamic.Rmd). [Html](/meeting/week14/Dynamic.html)
+- **Discussion 17 (Mar 22nd):** [Presidential Election Prediction Series 2] - Hancheng Li. Hancheng introduced a paper on presidential election prediction which combines prediction from time-for-change model and information from polls. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week17/Dynamic.Rmd). [Html](/meeting/week17/Dynamic.html)
 
-- **Discussion 18 (Mar 29th):** [Presidential Election Prediction Series 3] - Yuan Zhou. Yuan introduced a model which is based on the model introduced in Series 2. It takes into account various sources of bias (house, population, polling mode effect) from the polls.
+- **Discussion 18 (Mar 29th):** [Presidential Election Prediction Series 3] - Yuan Zhou. Yuan introduced a model which is based on the model introduced in Series 2. It takes into account various sources of bias (house, population, polling mode effect) from the polls. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week18/election_econ.Rmd). [Html](/meeting/week18/election_econ.html)
 
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
