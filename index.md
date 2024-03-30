@@ -78,7 +78,7 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Discussion 16 (Mar 8th):** [Presidential Election Prediction Series 1] - Yuan Zhou. Yuan introduced a hierarchical model that allows information sharing across states and over time. 
 
-- **Discussion 17 (Mar 22nd):** [Presidential Election Prediction Series 2] - Hancheng Li. Hancheng introduced a paper on presidential election prediction which combines prediction from time-for-change model and information from polls. 
+- **Discussion 17 (Mar 22nd):** [Presidential Election Prediction Series 2] - Hancheng Li. Hancheng introduced a paper on presidential election prediction which combines prediction from time-for-change model and information from polls. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week17/Dynamic.Rmd). [Html](/meeting/week14/Dynamic.html)
 
 - **Discussion 18 (Mar 29th):** [Presidential Election Prediction Series 3] - Yuan Zhou. Yuan introduced a model which is based on the model introduced in Series 2. It takes into account various sources of bias (house, population, polling mode effect) from the polls.
 
