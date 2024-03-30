@@ -68,7 +68,7 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Discussion 11 (Jan 19th):** "A hierarchical modeling for estimating team abilities in World Cup"- Kyle Mann.
 
-- **Discussion 12 (Feb 2nd):** "A hierarchical modeling of the gym waiting time data"- Yuan Zhou. 
+- **Discussion 12 (Feb 2nd):** "A hierarchical modeling of the gym waiting time data"- Yuan Zhou. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week12/gym_analysis.Rmd). [Html](/meeting/week12/gym_analysis.html)
 
 - **Discussion 13 (Feb 16th)** "How and why hierarchical model works"- Yuan Zhou. This discussion is about addressing some confusions regarding our gym data waiting model.[R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week15/multilevel.Rmd). [Html](/meeting/week13/multilevel.html)
 
