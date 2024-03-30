@@ -60,7 +60,7 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Discussion 7:** "Model Selection for Football Data." Hyogo conducted a comparative analysis of different models, evaluating their performance on test data specific to football. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week7/Oct-27-BDA-Contents.Rmd). [Html](/meeting/week7/Oct-27-BDA-Contents.html)
 
-- **Discussion 8:**  "Model Checking for Logistic Regression Using School District Statement Data." Yuan introduced a method utilizing binned residuals for assessing Bayesian logistic regression models, applying this technique to analyze school district statement data.
+- **Discussion 8:**  "Model Checking for Logistic Regression Using School District Statement Data." Yuan introduced a method utilizing binned residuals for assessing Bayesian logistic regression models, applying this technique to analyze school district statement data. [R](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week8/school_statement_logistic.Rmd)
 
 - **Discussion 9:** "Introduction to Bayesian Hierarchical Model". Kyle Mann talked about the concept and structure of Bayesian hierarchical modeling, and Bayesian information borrowing in clinical trials. [pdf](/meeting/week9/BayesianHierarchicalPresentation.pdf)
 
