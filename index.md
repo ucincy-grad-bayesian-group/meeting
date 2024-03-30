@@ -14,7 +14,7 @@ Our meetings take place every Friday at 4:00 PM French Hall 4119. For those who 
 
 ## This Week's Topic
 
-**Mar. 22nd:** The election prediction model Andrew Gelman et al. developed in 2020. [Hancheng Li].
+**Apr 5th:** A hierarchial model for clinical trial [Kyle Mann].
   
 ## Meeting Schedule and Topics
 
@@ -76,11 +76,11 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Week 16 (Mar 1st):** "A hierarchical model for estimating species richness" - Yuan Zhou. This model accounts for species absence and nondetection. 
 
-- **Week 17 (Mar 8th):** "A hierarchical model for U.S. presidential election prediction" - Yuan Zhou. This model allows information sharing information across states and over time. 
+- **Week 17 (Mar 8th):** [Presidential Election Prediction Series 1] - Yuan Zhou. Yuan introduced a hierarchical model that allows information sharing across states and over time. 
 
-- **Week 18 (Mar 22nd):**
+- **Week 18 (Mar 22nd):** [Presidential Election Prediction Series 2] - Hancheng Li. Hancheng introduced a paper on presidential election prediction which combines prediction from time-for-change model and information from polls. 
 
-- **Week 19 (Mar 29th):**
+- **Week 19 (Mar 29th):** [Presidential Election Prediction Series 3] - Yuan Zhou. Yuan introduced a model which is based on the model introduced in Series 2. It takes into account various sources of bias (house, population, polling mode effect) from the polls.
 
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
