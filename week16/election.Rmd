@@ -1,0 +1,113 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+# Data we have 
+
+- Results from 11 presidential elections from 1948 through 1988 for each state
+- Outcome: Democratic party candidate's share of the two-party vote
+- Sample size: 511
+
+# Variables for consideration
+
+- Nationwide Variables:
+  - Support for Democratic candidate in September poll:
+  - Presidential approval in July poll
+  - Second quarter GNP growth:
+
+- Statewide Variables:
+  - Democratic share of state vote in last election: 
+  - Democratic share of state vote two elections ago: 
+  - Home states of presidential candidates: 
+  - Home states of vice-presidential candidates: 
+  - Democratic majority in the state legislature: 
+  - State economic growth in past year:
+  - Measure of state ideology
+  - Ideological compatibility with candidates: 
+  - Proportion Catholic in 1960 (compared to U.S. average): 
+
+- Regional/Subregional Variables:
+  - South (as defined in 1964): 
+  - Deep South (as defined in 1964): 
+  - New England in 1964: 
+  - North Central in 1972: 
+  - West in 1976: 
+
+
+# Problem with classical regression $y_{st} = x^{\top}_{st}\beta + \varepsilon_{st}$
+
+Variation not accounted for leads to violation of independence assumption
+  - overestimated precision
+  
+# Test Statistics for correlation between states not accounted for within the year
+
+$$
+\begin{equation}
+T(y,\beta) = \sum_{t=1}^{11}(\frac{1}{50}\sum_{s=1}^{50}(y_{st} - x^{\top}_{st}\beta))^2
+\end{equation}
+$$
+
+
+For each MCMC iteration i,
+
+- draw $\beta^{(i)}$
+- calculate $T(y,\beta^{(i)})$
+- generate posterior predictive values $y^{(i)}_{rep}$, and calculate $T(y^{(i)}_{rep},\beta^{(i)})$
+- Compare the distribution of $T(y,\beta)$ and $T(y_{rep},\beta)$
+
+
+
+# Capture the year-to-year variability
+
+$$
+\begin{aligned}
+& y_{s t} \sim \mathrm{N}\left(x^{\top}_{st}\beta+\delta_t, \sigma^2\right) \\
+& \delta_t \sim \mathrm{N}\left(0, \tau_\delta^2\right), \\
+&
+\end{aligned}
+$$
+
+
+Also we can use AR prior. $\delta_t \sim \mathrm{N}\left(\delta_{t-1}, \tau_\delta^2\right)$
+
+# Even within a year, there might be some leftover correlations
+
+Electoral swings tha follow the region of the country - Northeast, South, Midwest, and West
+
+$$
+\begin{aligned}
+& y_{s t} \sim \mathrm{N}\left(x^{\top}_{st}\beta+\gamma_{\mathrm{r}(s) t}+\delta_t, \sigma^2\right) \\
+& \gamma_{r t} \sim\left\{\begin{array}{lll}
+\mathrm{N}\left(0, \tau_{\gamma }^2\right) & \text { for } r=1,2,3,4 & 
+\end{array}\right. \\
+& \delta_t \sim \mathrm{N}\left(0, \tau_\delta^2\right), \\
+&
+\end{aligned}
+$$
+
+
+# South tends to act as a special region of the U.S. politically
+
+$$
+\begin{aligned}
+y_{s t} & \sim \mathrm{N}\left(x^{\top}_{st}\beta+\gamma_{r(s) t}+\delta_t, \sigma^2\right) \\
+\gamma_{r t} & \sim\left\{\begin{array}{ll}
+\mathrm{N}\left(0, \tau_{\gamma 1}^2\right) & \text { for } r=1,2,3 \text {  (Non-South) }\\
+\mathrm{~N}\left(0, \tau_{\gamma 2}^2\right) & \text { for } r=4 \text { (South) }
+\end{array} \right. \\
+\delta_t & \sim \mathrm{N}\left(0, \tau_\delta^2\right),
+\end{aligned}
+$$
+
+
+# Three main advantages of the hierarchical model here:
+
+- It allows the modeling of correlation within election years and regions.
+
+- Including the year and region x year terms without a hierarchical model,or not including these terms at all,correspond to special cases of the hierarchical model with $\tau= \infty$ or 0, respectively. The more general model allows for a reasonable compromise betweenthese extremes.
+
+- Predictions will have additional components of variability for regions and year and should therefore be more reliable.
