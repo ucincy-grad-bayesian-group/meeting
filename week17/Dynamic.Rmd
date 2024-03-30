@@ -1,0 +1,73 @@
+---
+title: "Dynamic Bayesian Forecasting of Presidential Elections in the States"
+author: "Hancheng Li"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Variable Definition
+
+$h_i$: Number of votes received by Democratic in ith state,i=1,..,50; Estimated from historical models far in advance of the Election Day;
+
+$j=1,...,J$: index of days before the Election Day, j=1 is the first day that polls are conducted, j=J is the Election Day;
+
+$k_j$: the number of state-level polls conducted on day j, $0 \leq k_j \leq 50$
+
+$n_k,k=1,...,k_j$: the number of respondents in the kth poll
+
+$y_k$: the number of respondents who support Democratic in the kth poll
+
+$\pi_k$: the proportion of respondents in the kth poll that support Democratic
+
+The model can be written by: 
+$$
+y_k|\pi_{i[k]j[k]} \sim Bin(\pi_{i[k]j[k]},n_k)
+$$
+
+the index of $\pi$ indicate the state and day of poll k
+
+Further define: $\pi_{ij}=logit^{-1}(\beta_{ij}+\delta_j)$
+
+where
+
+$\beta_{ij}$ is the state-level effect that captures the long-term dynamics of voter preferences in state i,
+
+$\delta_j$ is the national-level effect that detects systematic departures from $\beta_{ij}$ on day j, due to short term campaign factors that influence attitudes in every state by the same amount.
+
+When j=J, $\delta_J = 0$ and therefore $\pi_{ij}=logit^{-1}(\beta_{iJ})$, and define the prior of $\beta_{iJ}$ to be
+$$
+\beta_{iJ} \sim N(logit(h_i),s_i^2=\tau^{-1})
+$$
+
+where $h_i$ is Number of votes received by Democratic in ith state,i=1,..,50; Estimated from historical models far in advance of the Election Day, $s_i$ is the variance specified by users, the author suggests $\tau$ should not exceed 20.
+
+
+When estimating $\pi{iJ}$ weeks or months ahead of the election,there will be a gap in the polling data between the last published survey and Election Day. To bridge this interval, and to connect the days in each state when no polls are released, both $\beta_{ij}$ and $\delta_{ij}$ are assigned a Bayesian reverse random-walk prior, “beginning” on Election Day.
+$$
+\beta_{ij}|\beta_{ij+1} \sim N(\beta_{ij+1}, \sigma^2_{\beta})\\
+\delta_{ij}|\delta_{ij+1} \sim N(\delta_{ij+1},\sigma^2_{\delta})
+$$
+
+$\sigma^2_{\beta} \propto 1, \sigma^2_{\delta} \propto 1$
+
+
+# Application
+
+One month before the election, support for Obama increased nationwide, but the model forecasts remained stable. The 90% highest posterior density (HPD) interval for the Florida forecast fell from ±3.5% to ±2.6%, and for the Indiana forecast from ±3.6% to±2.8%. Finally, on Election Day, the model predicted with 90% probability that Obama wouldwin between 50.1% and 51.9% of the major-party vote in Florida, and between 48.4% and 50.5% in Indiana. The actual outcome was 51.4% in Florida and 50.5% in Indiana.
+
+
+```{r}
+knitr::include_graphics("Dyna1.png")
+
+```
+
+
+```{r}
+knitr::include_graphics("Dyna.png")
+
+```
+
+
+
+
+
