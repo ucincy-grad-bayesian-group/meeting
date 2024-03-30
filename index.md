@@ -70,7 +70,7 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Discussion 12 (Feb 2nd):** "A hierarchical modeling of the gym waiting time data"- Yuan Zhou. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week12/gym_analysis.Rmd). [Html](/meeting/week12/gym_analysis.html)
 
-- **Discussion 13 (Feb 16th)** "How and why hierarchical model works"- Yuan Zhou. This discussion is about addressing some confusions regarding our gym data waiting model.[R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week15/multilevel.Rmd). [Html](/meeting/week13/multilevel.html)
+- **Discussion 13 (Feb 16th)** "How and why hierarchical model works"- Yuan Zhou. This discussion is about addressing some confusions regarding our gym data waiting model.[R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week15/multilevel.Rmd). [Html](/meeting/week15/multilevel.html)
 
 - **Discussion 14 (Feb 23th):** "A hierarchical model for estimating excess mortality due to COVID19 in Bangladesh" - Hancheng Li. This model applies to a survey data and allows information sharing across month and age groups.[R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week14/Multilevel-JAMA.Rmd). [Html](/meeting/week14/Multilevel-JAMA.html)
 
