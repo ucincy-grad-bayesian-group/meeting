@@ -1,0 +1,44 @@
+---
+title: "Multilevel models"
+output: html_document
+date: "2024-02-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Gym waiting data model:
+
+$$
+\begin{equation}
+Y_i = \alpha_{j[i]} + \mathbf{x}_i^\top \boldsymbol{\beta} + \varepsilon_i; \quad
+\alpha_j \sim \mathcal{N}\left(\gamma_0 + \gamma_1 u_j, \sigma^2_{\alpha}\right); \quad
+\varepsilon_i \sim \mathcal{N}(0, \sigma^2)
+\end{equation}
+$$
+where $Y_i$ is the recorded waiting time for the ith observation, $\alpha_{j[i]}$ indicates the machine type for the ith observation, $\mathbf{x}_i$ represent time, weekday..., $u_j$ is the available number of machines
+
+
+# Questions:
+
+## 1. how to interpret the individual and group level coefficients?
+
+The interpretations are the same. One unit of increase in $x_i, u_j$ will result in $\beta, \gamma_1$ unit of increase in $EY_i$
+
+## 2. Are there multicolinearity issues?
+
+Why simultaneously estimating $\alpha_j$ and $\mu_j$ is possible. (P393)
+
+## 3. which machine indicator in include? P271
+
+Most of $\alpha_j$ are not significant.
+
+## 4. how to intuitively understand the shrinkage effect? 
+
+How much information are we borrowing?
+
+## 5. when is using a multilevel model most effective? P270, P256, P268
+
+Close to complete pooling
+## 6. The advantage of using group level predictors. P271
