@@ -39,48 +39,48 @@ This stage will focus on models that specifically consider the data collection p
 
 ## Recent Discussions
 
-- **Week 0:** Introduction. [Slide](/meeting/week0/Bayesian_Reading_Group_Intro.pdf)
+- **Discussion 0:** Introduction. [Slide](/meeting/Discussion0/Bayesian_Reading_Group_Intro.pdf)
 
-- **Week 1:** "Modeling and Posterior Predictive Check for Football Data." This session, led by Yuan, focused on introducing the posterior predictive check as a comprehensive and adaptable method for evaluating Bayesian models. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week1/football_normal.Rmd). [Html](/meeting/week1/football_normal.html).
+- **Discussion 1:** "Modeling and Posterior Predictive Check for Football Data." This session, led by Yuan, focused on introducing the posterior predictive check as a comprehensive and adaptable method for evaluating Bayesian models. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion1/football_normal.Rmd). [Html](/meeting/Discussion1/football_normal.html).
 
-- **Week 2:** "Modeling for Airline Fatalities Data." Jiwon explored the use of the Poisson model to analyze airline fatalities data, considering both with and without passenger miles. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week2/BDAanalysis.Rmd). [Html](/meeting/week2/BDAanalysis.html).
+- **Discussion 2:** "Modeling for Airline Fatalities Data." Jiwon explored the use of the Poisson model to analyze airline fatalities data, considering both with and without passenger miles. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion2/BDAanalysis.Rmd). [Html](/meeting/Discussion2/BDAanalysis.html).
 
-- **Week 3:**  "Non-informative Prior." Kyle covered common non-informative priors, applying them to 2022 American birth data, and discussed their use in clinical trials, illustrating with examples. [Slide](/meeting/week3/UninformativePriorDistribution.pdf)
+- **Discussion 3:**  "Non-informative Prior." Kyle covered common non-informative priors, applying them to 2022 American birth data, and discussed their use in clinical trials, illustrating with examples. [Slide](/meeting/Discussion3/UninformativePriorDistribution.pdf)
 
-- **Week 4:**
-  - Theory of Weakly Informative Prior." Hancheng discussed the concept and implications of weakly informative priors, applying them to airline fatalities data. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week4/poisson%20regression%20(Using%20Jiwon's%20data).Rmd). [Html](/meeting/week4/poisson-regression--Using-Jiwon-s-data-.html).
-  - "Advantages of Using Weakly Informative Prior." Yuan demonstrated the benefits through two examples: estimating sex ratios to avoid absurd results and applying them in logistic regression with complete separation for more reasonable outcomes. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week4/sex_ratio_example.Rmd). [Html](/meeting/week4/sex_ratio_example.html).
-      - "Frequentist Properties of Weakly Informative Prior in Sex Ratio Example." Kyle examined the effects of using a N(0,0.007) prior for the difference parameter in probability \(p_1-p_2\), showing its impact on statistical power. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week4/sex_ratio_example_km.Rmd). [pdf](/meeting/week4/SexRatios.pdf)
+- **Discussion 4:**
+  - Theory of Weakly Informative Prior." Hancheng discussed the concept and implications of weakly informative priors, applying them to airline fatalities data. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion4/poisson%20regression%20(Using%20Jiwon's%20data).Rmd). [Html](/meeting/Discussion4/poisson-regression--Using-Jiwon-s-data-.html).
+  - "Advantages of Using Weakly Informative Prior." Yuan demonstrated the benefits through two examples: estimating sex ratios to avoid absurd results and applying them in logistic regression with complete separation for more reasonable outcomes. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion4/sex_ratio_example.Rmd). [Html](/meeting/Discussion4/sex_ratio_example.html).
+      - "Frequentist Properties of Weakly Informative Prior in Sex Ratio Example." Kyle examined the effects of using a N(0,0.007) prior for the difference parameter in probability \(p_1-p_2\), showing its impact on statistical power. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion4/sex_ratio_example_km.Rmd). [pdf](/meeting/Discussion4/SexRatios.pdf)
 
-- **Week 5:**
-  - "Theory of Model Comparison Criteria." Yuan delved into Bayesian model comparison criteria like DIC, WAIC, and LOOIC. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/model_comparison.Rmd). [Html](/meeting/week5/model_comparison.html)
-  - "Application." Eric demonstrated how to calculate these criteria for Rstan models. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week5/Model_comp.Rmd). [html](/meeting/week5/Model_comp.html)
+- **Discussion 5:**
+  - "Theory of Model Comparison Criteria." Yuan delved into Bayesian model comparison criteria like DIC, WAIC, and LOOIC. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion5/model_comparison.Rmd). [Html](/meeting/Discussion5/model_comparison.html)
+  - "Application." Eric demonstrated how to calculate these criteria for Rstan models. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion5/Model_comp.Rmd). [html](/meeting/Discussion5/Model_comp.html)
 
-- **Week 6:** "Andrew Gelman's Analysis of Golf Putting Data." Rick presented Gelman's work on golf putting data, showcasing the flexibility of the Bayesian method and Rstan in building models from fundamental principles. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week6/BDA_12.13.2023.Rmd). [html](/meeting/week6/BDA_12.13.2023.html)
+- **Discussion 6:** "Andrew Gelman's Analysis of Golf Putting Data." Rick presented Gelman's work on golf putting data, showcasing the flexibility of the Bayesian method and Rstan in building models from fundamental principles. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion6/BDA_12.13.2023.Rmd). [html](/meeting/Discussion6/BDA_12.13.2023.html)
 
-- **Week 7:** "Model Selection for Football Data." Hyogo conducted a comparative analysis of different models, evaluating their performance on test data specific to football. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week7/Oct-27-BDA-Contents.Rmd). [Html](/meeting/week7/Oct-27-BDA-Contents.html)
+- **Discussion 7:** "Model Selection for Football Data." Hyogo conducted a comparative analysis of different models, evaluating their performance on test data specific to football. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion7/Oct-27-BDA-Contents.Rmd). [Html](/meeting/Discussion7/Oct-27-BDA-Contents.html)
 
-- **Week 8:**  "Model Checking for Logistic Regression Using School District Statement Data." Yuan introduced a method utilizing binned residuals for assessing Bayesian logistic regression models, applying this technique to analyze school district statement data.
+- **Discussion 8:**  "Model Checking for Logistic Regression Using School District Statement Data." Yuan introduced a method utilizing binned residuals for assessing Bayesian logistic regression models, applying this technique to analyze school district statement data.
 
-- **Week 9:** "Introduction to Bayesian Hierarchical Model". Kyle Mann talked about the concept and structure of Bayesian hierarchical modeling, and Bayesian information borrowing in clinical trials. [pdf](/meeting/week9/BayesianHierarchicalPresentation.pdf)
+- **Discussion 9:** "Introduction to Bayesian Hierarchical Model". Kyle Mann talked about the concept and structure of Bayesian hierarchical modeling, and Bayesian information borrowing in clinical trials. [pdf](/meeting/Discussion9/BayesianHierarchicalPresentation.pdf)
 
-- **Week 10:** "A hierarchical model example from BDA- 8 school example". Yuan Zhou discussed the arguments the author proposed for using a hierarchical model in this example and the connection between it and James-Stein Estimator. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week10/8-school.Rmd). [Html](/meeting/week10/8-school.html)
+- **Discussion 10:** "A hierarchical model example from BDA- 8 school example". Yuan Zhou discussed the arguments the author proposed for using a hierarchical model in this example and the connection between it and James-Stein Estimator. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion10/8-school.Rmd). [Html](/meeting/Discussion10/8-school.html)
 
-- **Week 12 (Jan 19th):** "A hierarchical modeling for estimating team abilities in World Cup"- Kyle Mann.
+- **Discussion 11 (Jan 19th):** "A hierarchical modeling for estimating team abilities in World Cup"- Kyle Mann. 
 
-- **Week 13 (Feb 2nd):** "A hierarchical modeling of the gym waiting time data"- Yuan Zhou. 
+- **Discussion 12 (Feb 2nd):** "A hierarchical modeling of the gym waiting time data"- Yuan Zhou. 
 
-- **Week 14 (Feb 16th)** "How and why hierarchical model works"- Yuan Zhou. This discussion is about addressing some confusions regarding our gym data waiting model.
+- **Discussion 13 (Feb 16th)** "How and why hierarchical model works"- Yuan Zhou. This discussion is about addressing some confusions regarding our gym data waiting model.
 
-- **Week 15 (Feb 23th):** "A hierarchical model for estimating excess mortality due to COVID19 in Bangladesh" - Hancheng Li. This model applies to a survey data and allows information sharing across month and age groups.
+- **Discussion 14 (Feb 23th):** "A hierarchical model for estimating excess mortality due to COVID19 in Bangladesh" - Hancheng Li. This model applies to a survey data and allows information sharing across month and age groups.[R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion7/Oct-27-BDA-Contents.Rmd). [Html](/meeting/Discussion7/Oct-27-BDA-Contents.html)
 
-- **Week 16 (Mar 1st):** "A hierarchical model for estimating species richness" - Yuan Zhou. This model accounts for species absence and nondetection. 
+- **Discussion 15 (Mar 1st):** "A hierarchical model for estimating species richness" - Yuan Zhou. This model accounts for species absence and nondetection. 
 
-- **Week 17 (Mar 8th):** [Presidential Election Prediction Series 1] - Yuan Zhou. Yuan introduced a hierarchical model that allows information sharing across states and over time. 
+- **Discussion 16 (Mar 8th):** [Presidential Election Prediction Series 1] - Yuan Zhou. Yuan introduced a hierarchical model that allows information sharing across states and over time. 
 
-- **Week 18 (Mar 22nd):** [Presidential Election Prediction Series 2] - Hancheng Li. Hancheng introduced a paper on presidential election prediction which combines prediction from time-for-change model and information from polls. 
+- **Discussion 17 (Mar 22nd):** [Presidential Election Prediction Series 2] - Hancheng Li. Hancheng introduced a paper on presidential election prediction which combines prediction from time-for-change model and information from polls. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Discussion7/Oct-27-BDA-Contents.Rmd). [Html](/meeting/Discussion7/Oct-27-BDA-Contents.html)
 
-- **Week 19 (Mar 29th):** [Presidential Election Prediction Series 3] - Yuan Zhou. Yuan introduced a model which is based on the model introduced in Series 2. It takes into account various sources of bias (house, population, polling mode effect) from the polls.
+- **Discussion 18 (Mar 29th):** [Presidential Election Prediction Series 3] - Yuan Zhou. Yuan introduced a model which is based on the model introduced in Series 2. It takes into account various sources of bias (house, population, polling mode effect) from the polls.
 
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
