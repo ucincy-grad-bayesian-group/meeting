@@ -1,0 +1,134 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Data
+```{r echo=FALSE}
+x_csv <- read.csv("https://esapubs.org/archive/ecol/E087/050/butterflyData.txt");
+n <- dim(x_csv)[1];
+J <- dim(x_csv)[2];
+x <- matrix(NA, n, J)
+for (i in 1:n) {
+  for (j in 1:J) {
+    x[i,j] <- x_csv[i,j];
+  }
+}
+K <- 18;   # read from paper, figure 5
+S <- 50;   # more than adequate judging from plot in figure 6
+
+
+
+butterfly <- x
+library(ggplot2);
+library(reshape2);
+df_x <- melt(x);
+colnames(df_x)[1] <- "species";
+colnames(df_x)[2] <- "site";
+colnames(df_x)[3] <- "detections";
+
+detections_heatmap_plot <-
+  ggplot(df_x, aes(site, species)) +
+  geom_tile(aes(fill = detections), colour = "white") +
+  scale_fill_gradient(low = "white", high = "black") +
+  labs(x = "site number", y = "species number") +
+  scale_x_discrete(expand = c(0, -5), breaks=(5 * (1:4))) +
+  scale_y_discrete(expand = c(0, -5), breaks=(5 * (1:5))) +
+  ggtitle("Detections of Species at Sites over Visits (Butterfly)");
+
+plot(detections_heatmap_plot)
+
+x_csv <- read.csv("https://esapubs.org/archive/ecol/E087/050/breedingBirdData.txt");
+birds <- x_csv
+n <- dim(x_csv)[1];
+J <- dim(x_csv)[2];
+x <- matrix(NA, n, J)
+for (i in 1:n) {
+  for (j in 1:J) {
+    x[i,j] <- x_csv[i,j];
+  }
+}
+
+df_x <- melt(x);
+colnames(df_x)[1] <- "species";
+colnames(df_x)[2] <- "site";
+colnames(df_x)[3] <- "detections";
+
+detections_heatmap_plot <-
+  ggplot(df_x, aes(site, species)) +
+  geom_tile(aes(fill = detections), colour = "white") +
+  scale_fill_gradient(low = "white", high = "black") +
+  labs(x = "site number", y = "species number") +
+  scale_x_discrete(expand = c(0, -5), breaks=(5 * (1:4))) +
+  scale_y_discrete(expand = c(0, -5), breaks=(5 * (1:5))) +
+  ggtitle("Detections of Species at Sites over Visits (Birds)");
+
+plot(detections_heatmap_plot)
+```
+
+# Model
+
+## Problem formulation
+
+Suppose we have $S$ species in total that are potentially present in this area. Let $w_i=1$ denote that species $i$ is present, and $w_i=0$ is not. We are interested in $P(\sum_{i=1}^S w_i\mid Data)$
+
+Obviously, if a species is detected at least once, then $w_i=1$; but if a species is not detected, it is uncertain if it's because the species is not in the community or it is there but just not detected.
+
+**Question:** How $w_i$ is related to the likelihood?
+
+Thought: it is a long chain
+
+$w_i$ determines whether a species will have no chance of being present in any sites.
+
+- If $w_i=0$, then this species will have no chance of being present in any sites.
+
+- If $w_i=1$, this species might be present (or not) in some sites
+
+
+
+Let $i$ denote species, $j$ denote site, $z_{ij}=1$ denote species $i$ is present at site $j$. We have:
+
+$$
+z_{ij} \sim Bernoulli(w_i\psi_{ij})
+$$
+If the species is present at a specific site ($Z_{ij}=1$), then the detection time follows $Binomial(K, \theta)$, K is the total number of visit time for that site. If not, the detection time will be 0.
+
+
+Let $x_{ij}$ be the number of detection times for species $i$ at site $j$, it follows:
+
+$$
+x_{ij} \sim Binomial(K, z_{ij}\theta_{ij})
+$$
+
+With this model, for those undetected species, we can calculate the probability: 
+
+1. $w_i=0$(it is not in the community)
+2. $w_i=1, z_{ij}=0, j=1,...,J$ (it is in the community but not in the sampled sites)
+3. $w_i=1$, $z_{ij} \neq 0$ for some $j$, and $x_{ij}=0$ for $j=1,\ldots,J$. (it is in some sites but not detected)
+
+
+
+## Model simplification
+
+Let $\psi_{ij}=\psi_i$ (some occurrence probability across sites), $\theta_{ij}=\theta_i$ (some detection probability across sites)
+
+## Create hierarchical structure
+
+$$\left(logit(\psi_i),logit(\theta_i)\right)\sim MVN([\alpha,\beta]^T, \Sigma)$$
+
+For the undetected species, it is impossible to estimate $\psi_i$ and $\theta_i$ without borrowing information from other species.
+
+
+$$
+w_i\sim Bernoulli(\Omega)
+$$
+
+
+## Other priors
+weakly informative
+
+## Results
+
+
