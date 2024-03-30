@@ -1,0 +1,218 @@
+---
+title: "Assessment of Excess Mortality and Household Income in Rural Bangladesh During the COVID-19 Pandemic in 2020"
+author: "Hancheng Li"
+date: "2024-02-23"
+output: html_document
+---
+
+
+# Assessment of Excess Mortality and Household Income in Rural Bangladesh During the COVID-19 Pandemic in 2020
+
+To quantify the association of the COVID-19 pandemic with excess mortality and
+household income in rural Bangladesh in 2020.
+
+```{r eval=FALSE, include=TRUE}
+
+#Specify data
+#Four dimensions are: age(every 10 years old as a group, 9 groups in total), gender(male,female), education level(2), month(2019.1-2020.1)
+
+
+data {
+  int<lower=0> N_age;                 #number of age
+  int<lower=0> N_month;               #number of month
+  int cases[N_age,2,2,N_month];       #number of cases for each group
+  int exposures[N_age,2,2,N_month];   #number of exposures for each group
+  int covid_start;                    #covid start indicator
+}
+
+
+parameters {
+  real age_eff[N_age];                #age group effect 
+  real month_eff[11];                 #monthly effect for firsr 11 months
+  real edu_eff;                       #edu effect
+  real gender_eff;                    #gender effect
+  real covid_eff[N_age];              #covid effect to each age group
+  real covid_male;                    #covid effect to male
+  real covid_edu;                     #covid effect to edu
+  real<lower=0> sigma_age;            #sd for priors age
+  real<lower=0> sigma_age2;           #              covide age
+  real<lower=0> sigma_month;          #              monthly effect
+}
+
+transformed parameters {
+  real time_eff[N_month];             #repreating month effect over study period
+  real rate[N_age,2,2,N_month];       #rate of cases for each combinantion of each group
+  time_eff[1]=0;                      #first month is 0
+  time_eff[2:12]=month_eff;           #second to 12th is same as month effect
+  time_eff[(12+1):N_month]=time_eff[1:(N_month-12)];
+  for(i1 in 1:N_age)                  #13th to 22nd is same as that of 1st to 10th
+    for(i2 in 1:2)
+        for(i3 in 1:2)
+          for(i4 in 1:N_month){
+              rate[i1, i2, i3, i4] = age_eff[i1]+time_eff[i4];
+              if(i2==2)
+              rate[i1, i2, i3, i4] += gender_eff;
+               if(i3==2)
+              rate[i1, i2, i3, i4] += edu_eff;
+              if(i4>=12+covid_start){
+              rate[i1, i2, i3, i4] += covid_eff[i1];
+               if(i2==2)
+              rate[i1, i2, i3, i4] += covid_male;
+               if(i3==2)
+              rate[i1, i2, i3, i4] += covid_edu;
+              }
+          }
+  
+}
+
+
+
+```
+
+
+
+$$
+y_j \sim Binomial(n_j,\theta_j),where j=(j_1,j_2,j_3,j_4) 
+$$
+$$
+j_i=1,...,22;j_2=1,...,9;j_3=1(female),2(male);j_4=1(low),2(high)
+$$
+
+
+Logistic Model:
+
+
+Baseline mortality rate(pre covid)
+$$
+logit(\theta_j) = a_{j_1mod12}+a_{j_2}+a_{j_3}+a_{j_4}
+$$
+
+
+Post-Covid mortality rate:
+
+$$
+logit(\theta_j)=a_{j_1 mod12}+age_{j_2}+gender.eff_{j_3}+edu.eff_{j_4}+covid.eff_{j_2}+covid.male_{j_3}+covid.edu_{j_4}
+$$
+
+
+# Priors:
+
+Partial pooling priors are adopted to this model via lag-1 AR structrue for parameteres that depend on time:
+
+Age effect: 
+
+
+$a_1 \sim N(-8,4)$ weakly informative prior, $a_{j_1} \sim N(a_{j_1-1},\sigma^2_{age})$ for $1<j_1<9$;
+
+
+Age+Covid effect: 
+
+
+$age.c_{j_1} \sim N(age.c_{j_1-1},\sigma^2_{age.c})$ for $1<j_1\leq9$\\
+
+
+Month effect:
+
+
+$a_{j_1} \sim N(a_{j_1-1},\sigma^2_m)$ for $2\leq j_1\leq11$,
+
+
+- The gender effect ($\text{gender_eff}$) is assumed to follow a standard normal distribution:
+
+  $$\text{gender_eff} \sim N(0, 1)$$
+
+- The COVID effect for each age group ($\text{covid_eff}$) follows a standard normal distribution:
+
+  $$\text{covid_eff} \sim N(0, 1)$$
+
+- The standard deviation for monthly effects ($\sigma_{\text{month}}$) follows a standard normal distribution:
+
+  $$\sigma_{\text{month}} \sim N(0, 1)$$
+
+- The standard deviation for age effects ($\sigma_{\text{age}}$) follows a standard normal distribution:
+
+  $$\sigma_{\text{age}} \sim N(0, 1)$$
+
+- The standard deviation for COVID age effects ($\sigma_{\text{age2}}$) follows a standard normal distribution:
+
+  $$\sigma_{\text{age2}} \sim N(0, 1)$$
+
+- The additional COVID effect for males ($\text{covid_male}$) follows a standard normal distribution:
+
+  $$\text{covid_male} \sim N(0, 1)$$
+
+- The education effect ($\text{edu_eff}$) is assumed to follow a normal distribution with mean 0 and standard deviation 0.5:
+
+  $$\text{edu_eff} \sim N(0, 0.5)$$
+
+- The additional COVID effect for those with higher education ($\text{covid_edu}$) follows a normal distribution with mean 0 and standard deviation 0.5:
+
+  $$\text{covid_edu} \sim N(0, 0.5)$$
+
+
+
+
+
+```{r eval=FALSE, include=TRUE}
+model {
+  for(i1 in 1:N_age)
+    for(i2 in 1:2)
+        for(i3 in 1:2)
+          for(i4 in 1:N_month)
+              cases[i1, i2, i3, i4]~ binomial_logit(exposures[i1, i2, i3, i4],  rate[i1, i2, i3, i4] ); #likelihood
+   for(i in 2:N_age)
+      target+= -0.5*(  age_eff[i]-age_eff[i-1])^2/sigma_age^2; #  lag-1 AR prior             prior for age effect
+   age_eff[1]~normal(-8,4); #weakly informative prior for the first one
+   for(i in 2:N_age)
+      target+= -0.5*(covid_eff[i]-covid_eff[i-1])^2/sigma_age2^2;  #prior for age after covid effect
+   for(i in 2:11)
+      target+= -0.5*(month_eff[i]-month_eff[i-1])^2/sigma_month^2; #prior for month effect
+   target+= -(0-month_eff[11])^2/sigma_month^2;   
+   gender_eff~std_normal();
+   covid_eff~std_normal();
+   sigma_month~std_normal();
+   sigma_age~std_normal();
+   sigma_age2~std_normal();
+   covid_male~std_normal();
+   edu_eff~normal(0,0.5);
+   covid_edu~normal(0,0.5);
+}
+```
+
+fitted Baseline mortality based on MCMC posterior samples of above parameters:
+
+
+$$
+\hat{\theta}_{j_2,j_3,j_4}=logit^{-1}(age.eff_{j_2}+gender.eff_{j_3}+edu.eff_{j_4}+\frac{1}{12}\sum_{j_1=1}^{12}month.eff_{j_1})
+$$
+
+fitted post covid mortality:
+
+
+$$
+\hat{\theta}^*_{j_2,j_3,j_4}=logit^{-1}(age.eff_{j_2}+gender.eff_{j_3}+edu.eff_{j_4}\\
++covidage.eff_{j_2}+covid.male.eff_{j_3}+covid.edu.eff_{j_4}+\frac{1}{12}\sum_{j_1=1}^{12}month.eff_{j_1})
+$$
+
+
+
+
+
+
+
+
+```{r}
+knitr::include_graphics("mortality.1.png")
+```
+
+
+```{r}
+knitr::include_graphics("mortality.2.png")
+
+```
+
+
+
+
+
+
