@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2024-03-29" />
+<meta name="date" content="2024-04-19" />
 
 <title>Election Prediction Model with Prior Setup</title>
 
@@ -351,7 +351,7 @@ display: none;
 
 <h1 class="title toc-ignore">Election Prediction Model with Prior
 Setup</h1>
-<h4 class="date">2024-03-29</h4>
+<h4 class="date">2024-04-19</h4>
 
 </div>
 
@@ -592,8 +592,8 @@ log(\frac{\theta_i}{1-\theta_i}) = \sum_{s=1}^S w_s\mu^{b}_{s,t[i]}+
 <p>Construct <span class="math inline">\(b_{\xi}\)</span></p>
 <ol style="list-style-type: decimal">
 <li><span class="math inline">\(b_{\xi}\)</span> is selected to be 0.25
-because this will make the prior s.d. for national polling error <span class="math inline">\(\sqrt{w^{T}\Sigma w}\)</span> roughly 1.3% (prior
-information).</li>
+because this will make the prior s.d. for national polling error <span class="math inline">\(\sqrt{b_{\xi}w^{T}\Sigma w}\)</span> roughly 1.3%
+(prior information).</li>
 </ol>
 <pre class="r"><code>err &lt;- c(0.5, 1.9, 0.8, 7.2, 1.0, 1.4, 0.1, 3.3, 3.4, 0.9, 0.3, 2.7, 1.0) / 2 
 sqrt(mean(err^2))</code></pre>
