@@ -14,7 +14,7 @@ Our meetings take place every Friday at 4:00 PM French Hall 4119. For those who 
 
 ## This Week's Topic
 
-**Apr 5th:** A hierarchial model for clinical trial [Kyle Mann].
+**Apr 26th:** TBD
   
 ## Meeting Schedule and Topics
 
@@ -82,6 +82,11 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Discussion 18 (Mar 29th):** [Presidential Election Prediction Series 3] - Yuan Zhou. Yuan introduced a model which is based on the model introduced in Series 2. It takes into account various sources of bias (house, population, polling mode effect) from the polls. [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week18/election_econ.Rmd). [Html](/meeting/week18/election_econ.html)
 
+
+- **Discussion 19 (April 5th):** "A real example of using hierarchical model in clinical trial" - Kyle Mann. Kyle talked about clustered hierarchical modeling using Dirichlet process priors, and the application of this method in the Rare Oncology Agnostic Research (ROAR) trial. 
+
+- **Discussion 20 (April 19th):** [Presidential Election Prediction Series 4] - Yuan Zhou. Yuan introduced the choices and reasons for the prior distribution for the model in [Presidential Election Prediction Series 2].  [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week20/model_with_prior.Rmd). [Html](/meeting/week20/model_with_prior.html)
+- 
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
 
