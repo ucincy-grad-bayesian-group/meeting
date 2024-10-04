@@ -86,7 +86,11 @@ This stage will focus on models that specifically consider the data collection p
 - **Discussion 19 (April 5th):** "A real example of using hierarchical model in clinical trial" - Kyle Mann. Kyle talked about clustered hierarchical modeling using Dirichlet process priors, and the application of this method in the Rare Oncology Agnostic Research (ROAR) trial. 
 
 - **Discussion 20 (April 19th):** [Presidential Election Prediction Series 4] - Yuan Zhou. Yuan introduced the choices and reasons for the prior distribution for the model in [Presidential Election Prediction Series 2].  [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week20/model_with_prior.Rmd). [Html](/meeting/week20/model_with_prior.html)
-- 
+
+
+- **Discussion 21 (Oct. 4th):** [Presidential Election Prediction Series 5] - Yuan Zhou& Hancheng Li. Yuan introduced simple binomial and random walk prior. Hancheng introduced how to introduce state correlation in the model.  [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Week21/Election.Rmd). [Html](/meeting/Week21/Election.html)
+
+  
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
 
