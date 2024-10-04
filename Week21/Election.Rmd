@@ -1,0 +1,374 @@
+---
+title: "Election Prediction Model"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Why do we want to study it?
+
+- It is an example of an influential applied Bayesian statistic work
+
+- This model has complete code with every details and tons of discussion on Andrew Gelman's blog by himself and his followers (of which many are statisticians).
+
+- This model use informative prior, which are different from textbook very weak priors.
+
+- It's good to compare the difference with other prediction model on market.
+  - Economist
+  - Silver Bulletin
+  - FiveThirtyEight
+  
+- Its performance can be tested soon
+
+# Problem:
+
+- Goal: 
+
+  - Estimate the proportion of people in each state supporting trump in the presidential election along with uncertainty quantification.
+  
+  - Simulate the distribution of total electoral votes in the final election and calculate the probability that Trump wins.
+
+- Data: polls, economic, etc..
+
+- Expectation: Result should be reasonable.
+  - Reasonable point estimate
+  - Reasonably confidence interval
+  
+  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+## Reading data
+
+
+```{r}
+library(dplyr)
+library(lqmm)
+poll <- read.csv("https://projects.fivethirtyeight.com/polls/data/president_polls.csv")
+poll <- poll[,c(1,3,11,13,15,22,23,26,47:51)]
+poll <- poll[!duplicated(poll),]
+
+poll$state[which(poll$state == "Maine CD-1")] <- "Maine"
+poll$state[which(poll$state == "Maine CD-2")] <- "Maine"
+poll$state[which(poll$state == "Nebraska CD-2")] <- "Nebraska"
+
+#read Cov state matrix
+Cov.state <- readRDS("Cov.state.RDS")
+#Cholesky decompose
+Cho.Cov.state <- chol(Cov.state)
+
+# filter the data
+poll <- poll %>% 
+  mutate(end_date = as.Date(poll$end_date,"%m/%d/%y")) %>%
+  filter(end_date > as.Date("2024-07-28","%Y-%m-%d")) 
+quetion_id_tb <- table(poll$question_id)
+
+# remove 4 candidates results
+quetion_id_filter <- names(quetion_id_tb)[quetion_id_tb==2]
+
+poll <- poll %>% filter(question_id %in% quetion_id_filter)
+
+# if both type of voters exist, only take likely voters
+
+filtered_poll <- poll %>%
+  group_by(poll_id) %>%
+  # For each poll_id, check if "lv" is not the only population_full present
+  mutate(has_lv = any(population_full == "lv")) %>%
+  # Filter: if there are non-lv values, keep only rows where population_full == "lv"
+  filter(!has_lv | population_full == "lv") %>%
+  # Drop the helper column
+  select(-has_lv)
+
+filtered_poll <- filtered_poll %>%
+  group_by(poll_id) %>%
+  # For each poll_id, check if "lv" is not the only population_full present
+  mutate(has_rv = any(population_full == "rv")) %>%
+  # Filter: if there are non-lv values, keep only rows where population_full == "lv"
+  filter(!has_rv | population_full == "rv") %>%
+  # Drop the helper column
+  select(-has_rv)
+# remove other candidates
+
+filtered_poll <- filtered_poll %>% filter(candidate_name%in%c("Donald Trump","Kamala Harris"))
+filtered_poll <- filtered_poll[!duplicated(filtered_poll),]
+
+# only keep the first 2
+filtered_poll <- filtered_poll %>%
+  group_by(poll_id) %>%
+  slice(1:2) %>%  # Keep only the first 2 rows per group (poll_id)
+  ungroup()       # Ungroup the data
+  
+
+# construct data for modelling
+
+adjusted_poll <- filtered_poll %>%
+  group_by(poll_id) %>%
+  mutate(
+    # Sum of pct for each poll_id
+    total_pct = sum(pct),
+    
+    # If total_pct is not 100, adjust percentages and sample size
+    pct = ifelse(total_pct != 100, (pct / total_pct) * 100, pct),
+    
+    # Adjust the sample size proportionally if total_pct is not 100
+    new_sample_size = ifelse(total_pct != 100, round(sample_size * total_pct / 100), sample_size),
+    
+    trump_vote = round(new_sample_size* pct/100)
+  ) %>%
+  ungroup() %>%  # Remove grouping
+  filter(candidate_name=="Donald Trump") %>%
+  select(-total_pct)  # Remove the helper column
+
+
+final_poll <- adjusted_poll %>% select(-c(6,9,10,12)) %>% 
+  mutate(state=ifelse(state=="","National",state)) %>% 
+  filter(!is.na(sample_size))
+
+origin_data <- as.Date("2024-07-28")
+# Create unique IDs for states and days
+final_poll <- final_poll %>%
+  mutate(
+    state_id = as.numeric(factor(state)),
+    day_id = as.numeric(end_date-origin_data)
+  )
+
+state_tb <- 1:39
+names(state_tb) <- levels(factor(final_poll$state))
+
+remove(adjusted_poll,filtered_poll)
+head(final_poll)
+library(ggplot2)
+
+
+#Covariance of State
+state_data_long <- readRDS(file = "state_data_long.RDS")
+
+state_data_long <- state_data_long[, colnames(state_data_long) %in% names(state_tb)]
+C <- cor(state_data_long)
+C[C < 0] <- 0 # baseline cor for national poll error
+
+
+tmp_C <- C
+diag(tmp_C) <- NA
+mean(tmp_C,na.rm=T)
+
+# mixing with matrix of 0.5s
+lambda <- 0.75
+C_1 <- matrix(data=1,nrow = nrow(C),ncol=ncol(C))
+a <- 1
+new_C <- (lambda*C + (1-lambda)*C_1) %>% make.positive.definite()
+
+tmp <- new_C
+diag(tmp) <- NA
+mean(tmp,na.rm=T)
+
+#state_correlation_polling <- new_C
+
+C_0.6 <- 0.6 * C
+diag(C_0.6) <- 1
+state_correlation_polling <- C_0.6 %>% make.positive.definite()
+
+# make pos definite
+state_correlation_polling <- make.positive.definite(state_correlation_polling)
+
+dim(state_correlation_polling)
+
+Cov.state <- diag(0.28,ncol(state_correlation_polling)) %*% state_correlation_polling %*% diag(0.28,ncol(state_correlation_polling))
+
+Cho.Cov.state <- chol(Cov.state)
+```
+
+# Simple Binomial Modelling
+
+```{r}
+library(rstan)
+options(mc.cores = 4)
+setwd("~/BDA")
+# Prepare the data list for Stan
+
+
+stan_data <- list(
+  N = nrow(final_poll),                  # Number of observations
+  S = length(state_tb),  # Number of unique states
+  D = max(final_poll$day_id),  # Number of unique days
+  sample_size = final_poll$new_sample_size,  # Sample size for each observation
+  trump_vote = final_poll$trump_vote,    # Trump votes for each observation
+  state_id = final_poll$state_id,        # State index for each observation
+  day_id = final_poll$day_id             # Day index for each observation
+)
+
+fit_binom1 <- stan(
+  file = "Election_model1.stan",  # Stan program
+  data = stan_data,    # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 4000,            # total number of iterations per chain
+  refresh = 0             # no progress shown
+  
+)
+print(fit_binom1, pars = c("p"))
+
+post_prob <- extract(fit_binom1)
+post_p_mat <- post_prob$p
+plot_model <- function(post_prob,final_poll,state="National"){
+  state_id <- which(names(state_tb)==state) 
+  low <- apply(post_p_mat[,state_id,],2,quantile,0.025)
+  high <- apply(post_p_mat[,state_id,],2,quantile,0.975)
+  mean <- apply(post_p_mat[,state_id,],2,mean)
+  
+plot_data <- data.frame(
+
+  day =   as.Date(1:max(final_poll$day_id),origin="2024-07-28"),
+  mean = mean,
+  low = low,
+  high = high
+)
+
+# Plot the data using ggplot2
+p <- ggplot(plot_data, aes(x = day, y = mean)) +
+  geom_point(size = 1) +  # Dots for mean values
+  geom_errorbar(aes(ymin = low, ymax = high), width = 0.2) +  # Error bars
+  labs(
+    title = state,
+    x = "Day",
+    y = "Trump Supp. Prob."
+  ) +
+  theme_minimal()  # Minimal theme for clean appearance
+  return(p)
+}
+
+p1 <- plot_model(post_prob,final_poll,state="National")
+p2 <- plot_model(post_prob,final_poll,state="Wisconsin")
+p3 <- plot_model(post_prob,final_poll,state="Pennsylvania")
+p4 <- plot_model(post_prob,final_poll,state="Maine")
+
+gridExtra::grid.arrange(p1,p2,p3,p4,ncol=2)
+```
+
+
+
+# Binomial Modelling - assuming probability has random walk prior
+
+```{r cache=T}
+
+stan_data <- list(
+  N = nrow(final_poll),                  # Number of observations
+  S = length(state_tb),  # Number of unique states
+  T = max(final_poll$day_id),  # Number of unique days
+  sample_size = final_poll$new_sample_size,  # Sample size for each observation
+  trump_vote = final_poll$trump_vote,    # Trump votes for each observation
+  state_id = final_poll$state_id,        # State index for each observation
+  day_id = final_poll$day_id             # Day index for each observation
+)
+
+fit_binom2 <- stan(
+  file = "Election_model4.stan",  # Stan program
+  data = stan_data,    # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  refresh = 0             # no progress shown
+)
+#print(fit_binom3, pars = c("p"))
+
+post_prob <- extract(fit_binom2)
+post_p_mat <- post_prob$p
+plot_model <- function(post_prob,final_poll,state="National"){
+  state_id <- which(names(state_tb)==state) 
+  low <- apply(post_p_mat[,state_id,],2,quantile,0.025)
+  high <- apply(post_p_mat[,state_id,],2,quantile,0.975)
+  mean <- apply(post_p_mat[,state_id,],2,mean)
+  
+plot_data <- data.frame(
+
+  day =   as.Date(1:max(final_poll$day_id),origin="2024-07-28"),
+  mean = mean,
+  low = low,
+  high = high
+)
+
+# Plot the data using ggplot2
+p <- ggplot(plot_data, aes(x = day, y = mean)) +
+  geom_point(size = 1) +  # Dots for mean values
+  geom_errorbar(aes(ymin = low, ymax = high), width = 0.2) +  # Error bars
+  labs(
+    title = state,
+    x = "Day",
+    y = "Trump Supp. Prob."
+  ) +
+  theme_minimal()  # Minimal theme for clean appearance
+  return(p)
+}
+
+p1 <- plot_model(post_prob,final_poll,state="National")
+p2 <- plot_model(post_prob,final_poll,state="Wisconsin")
+p3 <- plot_model(post_prob,final_poll,state="Pennsylvania")
+p4 <- plot_model(post_prob,final_poll,state="Maine")
+
+gridExtra::grid.arrange(p1,p2,p3,p4,ncol=2)
+```
+
+
+
+Add state correlation
+```{r cache=T}
+
+stan_data <- list(
+  N = nrow(final_poll),                  # Number of observations
+  S = length(state_tb),  # Number of unique states
+  T = max(final_poll$day_id),  # Number of unique days
+  sample_size = final_poll$new_sample_size,  # Sample size for each observation
+  trump_vote = final_poll$trump_vote,    # Trump votes for each observation
+  state_id = final_poll$state_id,        # State index for each observation
+  day_id = final_poll$day_id,             # Day index for each observation
+  cho_state_covariance = Cho.Cov.state
+)
+
+fit_binom3 <- stan(
+  file = "Election_model5.stan",  # Stan program
+  data = stan_data,    # named list of data
+  chains = 4,             # number of Markov chains
+  warmup = 1000,          # number of warmup iterations per chain
+  iter = 2000,            # total number of iterations per chain
+  refresh = 1            # no progress shown
+)
+#print(fit_binom3, pars = c("p"))
+
+post_prob <- extract(fit_binom3)
+post_p_mat <- post_prob$p
+plot_model <- function(post_prob,final_poll,state="National"){
+  state_id <- which(names(state_tb)==state) 
+  low <- apply(post_p_mat[,state_id,],2,quantile,0.025)
+  high <- apply(post_p_mat[,state_id,],2,quantile,0.975)
+  mean <- apply(post_p_mat[,state_id,],2,mean)
+  
+plot_data <- data.frame(
+
+  day =   as.Date(1:max(final_poll$day_id),origin="2024-07-28"),
+  mean = mean,
+  low = low,
+  high = high
+)
+
+# Plot the data using ggplot2
+p <- ggplot(plot_data, aes(x = day, y = mean)) +
+  geom_point(size = 1) +  # Dots for mean values
+  geom_errorbar(aes(ymin = low, ymax = high), width = 0.2) +  # Error bars
+  labs(
+    title = state,
+    x = "Day",
+    y = "Trump Supp. Prob."
+  ) +
+  theme_minimal()  # Minimal theme for clean appearance
+  return(p)
+}
+
+p1 <- plot_model(post_prob,final_poll,state="National")
+p2 <- plot_model(post_prob,final_poll,state="Wisconsin")
+p3 <- plot_model(post_prob,final_poll,state="Pennsylvania")
+p4 <- plot_model(post_prob,final_poll,state="Maine")
+
+gridExtra::grid.arrange(p1,p2,p3,p4,ncol=2)
+```
