@@ -88,7 +88,7 @@ This stage will focus on models that specifically consider the data collection p
 - **Discussion 20 (April 19th):** [Presidential Election Prediction Series 4] - Yuan Zhou. Yuan introduced the choices and reasons for the prior distribution for the model in [Presidential Election Prediction Series 2].  [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/week20/model_with_prior.Rmd). [Html](/meeting/week20/model_with_prior.html)
 
 
-- **Discussion 21 (Oct. 4th):** [Presidential Election Prediction Series 5] - Yuan Zhou& Hancheng Li. Yuan introduced simple binomial and random walk prior. Hancheng introduced how to introduce state correlation in the model.  [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Week21/Election.Rmd). [Html](/meeting/Week21/Election.html). [Code&Data] (https://github.com/ucincy-grad-bayesian-group/meeting/tree/c7447368fc69b3f4d5114bba8ff9eacc9f4e7994/Week21)
+- **Discussion 21 (Oct. 4th):** [Presidential Election Prediction Series 5] - Yuan Zhou& Hancheng Li. Yuan introduced simple binomial and random walk prior. Hancheng introduced how to introduce state correlation in the model.  [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Week21/Election.Rmd). [Html](/meeting/Week21/Election.html). [Code Data](https://github.com/ucincy-grad-bayesian-group/meeting/tree/c7447368fc69b3f4d5114bba8ff9eacc9f4e7994/Week21)
 
 
   
