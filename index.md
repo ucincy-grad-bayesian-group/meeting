@@ -90,7 +90,7 @@ This stage will focus on models that specifically consider the data collection p
 
 - **Discussion 21 (Oct. 4th):** [Presidential Election Prediction Series 5] - Yuan Zhou& Hancheng Li. Yuan introduced simple binomial and random walk prior. Hancheng introduced how to introduce state correlation in the model.  [R Markdown](https://raw.githubusercontent.com/ucincy-grad-bayesian-group/meeting/main/Week21/Election.Rmd). [Html](/meeting/Week21/Election.html). [Code Data](https://github.com/ucincy-grad-bayesian-group/meeting/tree/c7447368fc69b3f4d5114bba8ff9eacc9f4e7994/Week21)
 
-
+- Sample ([HPC schedule](/meeting/Week21/HPC_job_schedule.html)
   
 ## Join Us
 If you're a UC student interested in statistics and data science, we'd love to have you join us! Please [contact us](mailto:zhou3y4@mail.uc.edu) for more information.
